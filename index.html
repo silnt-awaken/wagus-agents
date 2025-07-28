@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WAGUS Agents</title>
+    <script>
+      // Polyfill for global and process
+      window.global = window.global || window;
+      window.process = window.process || { env: {} };
+      
+      // Buffer polyfill - must be available before any modules load
+      window.Buffer = window.Buffer || {
+        from: function(data, encoding) {
+          if (typeof data === 'string') {
+            const bytes = new TextEncoder().encode(data);
+            return new Uint8Array(bytes);
+          }
+          return new Uint8Array(data);
+        },
+        alloc: function(size, fill) {
+          const buffer = new Uint8Array(size);
+          if (fill !== undefined) {
+            buffer.fill(fill);
+          }
+          return buffer;
+        },
+        isBuffer: function(obj) {
+          return obj instanceof Uint8Array;
+        }
+      };
+      
+      // Make Buffer available globally
+      window.globalThis = window.globalThis || window;
+      window.globalThis.Buffer = window.Buffer;
+    </script>
+    <script type="module">
+      if (import.meta.hot?.on) {
+        import.meta.hot.on('vite:error', (error) => {
+          if (error.err) {
+            console.error([error.err.message, error.err.frame].filter(Boolean).join('\n'));
+          }
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
