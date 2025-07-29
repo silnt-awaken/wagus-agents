@@ -197,7 +197,15 @@ export function useTheme() {
   const checkThemeOwnership = (themeName: WagusTheme): boolean => {
     if (themeName === 'default') return true; // Default theme is always free
     
-    const ownedFeatures = JSON.parse(localStorage.getItem('wagus-owned-features') || '[]');
+    // Initialize with some default owned themes for demo purposes
+    const defaultOwnedFeatures = ['dark_theme', 'neon_theme'];
+    const existingFeatures = JSON.parse(localStorage.getItem('wagus-owned-features') || '[]');
+    
+    // Merge default features with existing ones
+    const allOwnedFeatures = [...new Set([...defaultOwnedFeatures, ...existingFeatures])];
+    localStorage.setItem('wagus-owned-features', JSON.stringify(allOwnedFeatures));
+    
+    const ownedFeatures = allOwnedFeatures;
     const themeMap: Record<WagusTheme, string> = {
       'default': '',
       'dark': 'dark_theme',

@@ -1,270 +1,127 @@
 import { useState, useEffect } from 'react'
-import {
-  Search,
-  Filter,
-  Star,
-  Crown,
-  Sparkles,
-  Download,
-  Eye,
-  ShoppingCart,
-  CreditCard,
-  Brain,
-  Zap,
-  Code,
-  Database,
-  Shield,
-  Globe,
-  Cpu,
-  FileText,
-  ChevronDown,
-  ChevronRight,
-  Heart,
-  Share2,
-  AlertTriangle,
-  CheckCircle,
-  XCircle
-} from 'lucide-react'
+import { Search, Filter, Star, ShoppingCart, Download, Eye, Users, Zap, Crown, Gem, Heart, Sparkles, CreditCard, Code, Palette, TrendingUp, Package, Settings, CheckCircle, Gift, FileText } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '../components/AuthProvider'
-import { useNavigate } from 'react-router-dom'
+import { Agent, Category } from '../types/agent'
+import { loadAgentsFromMarkdown, loadAgentContent } from '../utils/agentLoader'
 
-interface Agent {
-  id: string
-  name: string
-  description: string
-  longDescription: string
-  category: string
-  price: number
-  rating: number
-  reviews: number
-  downloads: number
-  featured: boolean
-  premium: boolean
-  tags: string[]
-  capabilities: string[]
-  documentation: {
-    markdown: string
-    xml: string
-    plaintext: string
-  }
-  author: string
-  version: string
-  lastUpdated: string
-  compatibility: string[]
-  requirements: string[]
-  preview: string
+const AGENT_CATEGORIES: Category[] = [
+  { id: 'engineering', name: 'Engineering', icon: '⚙️', count: 7 },
+  { id: 'design', name: 'Design', icon: '🎨', count: 5 },
+  { id: 'marketing', name: 'Marketing', icon: '📈', count: 7 },
+  { id: 'product', name: 'Product', icon: '📱', count: 3 },
+  { id: 'project-management', name: 'Project Management', icon: '📋', count: 3 },
+  { id: 'studio-operations', name: 'Studio Operations', icon: '🏢', count: 5 },
+  { id: 'testing', name: 'Testing', icon: '🧪', count: 5 },
+  { id: 'bonus', name: 'Bonus', icon: '🎁', count: 2 }
+]
+
+const TIER_COLORS = {
+  Starter: 'bg-green-100 text-green-800 border-green-200',
+  Professional: 'bg-blue-100 text-blue-800 border-blue-200',
+  Enterprise: 'bg-purple-100 text-purple-800 border-purple-200',
+  Legendary: 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-yellow-300'
 }
 
-const AgentShop = () => {
+const TIER_ICONS = {
+  Starter: Zap,
+  Professional: Star,
+  Enterprise: Crown,
+  Legendary: Gem
+}
+
+export default function AgentShop() {
   const [agents, setAgents] = useState<Agent[]>([])
+  const [filteredAgents, setFilteredAgents] = useState<Agent[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedTier, setSelectedTier] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [sortBy, setSortBy] = useState('popularity')
-  const [showFilters, setShowFilters] = useState(false)
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'rating' | 'downloads'>('name')
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
-  const [activeTab, setActiveTab] = useState<'markdown' | 'xml' | 'plaintext'>('markdown')
+  const [showPreview, setShowPreview] = useState(false)
+  const [userCredits, setUserCredits] = useState(50000) // Mock user credits
+  const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
-  const { credits, updateCredits } = useAuth()
-  const navigate = useNavigate()
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
+  const [categories] = useState(['all', 'Engineering', 'Design', 'Marketing', 'Product', 'Project Management', 'Studio Operations', 'Testing', 'Bonus'])
 
-  const categories = [
-    'all', 'Development', 'AI/ML', 'Data Science', 'Security', 'DevOps', 
-    'Blockchain', 'Design', 'Marketing', 'Finance', 'Research'
-  ]
-
-  const premiumAgents: Agent[] = [
-    {
-      id: 'code-architect',
-      name: 'Code Architect Pro',
-      description: 'Advanced code generation and architecture design agent',
-      longDescription: 'The Code Architect Pro is an elite AI agent specialized in generating enterprise-grade code architectures, design patterns, and scalable solutions. It combines years of software engineering best practices with cutting-edge AI capabilities.',
-      category: 'Development',
-      price: 5000,
-      rating: 4.9,
-      reviews: 1247,
-      downloads: 8932,
-      featured: true,
-      premium: true,
-      tags: ['Code Generation', 'Architecture', 'Design Patterns', 'Enterprise'],
-      capabilities: [
-        'Generate complete application architectures',
-        'Design scalable microservices',
-        'Create design pattern implementations',
-        'Optimize code performance',
-        'Generate comprehensive documentation'
-      ],
-      documentation: {
-        markdown: `# Code Architect Pro\n\n## Overview\nThe Code Architect Pro is your ultimate companion for building enterprise-grade software architectures.\n\n## Key Features\n- **Architecture Generation**: Creates complete system architectures\n- **Design Patterns**: Implements proven design patterns\n- **Code Optimization**: Analyzes and optimizes existing code\n- **Documentation**: Generates comprehensive technical docs\n\n## Usage\n\`\`\`typescript\nconst architect = new CodeArchitectPro({\n  language: 'typescript',\n  framework: 'react',\n  architecture: 'microservices'\n});\n\nconst result = await architect.generateArchitecture({\n  requirements: 'E-commerce platform',\n  scale: 'enterprise'\n});\n\`\`\`\n\n## Supported Languages\n- TypeScript/JavaScript\n- Python\n- Java\n- C#\n- Go\n- Rust`,
-        xml: `<?xml version="1.0" encoding="UTF-8"?>\n<agent>\n  <name>Code Architect Pro</name>\n  <version>2.1.0</version>\n  <capabilities>\n    <capability>Architecture Generation</capability>\n    <capability>Design Patterns</capability>\n    <capability>Code Optimization</capability>\n    <capability>Documentation</capability>\n  </capabilities>\n  <languages>\n    <language>TypeScript</language>\n    <language>Python</language>\n    <language>Java</language>\n    <language>C#</language>\n    <language>Go</language>\n    <language>Rust</language>\n  </languages>\n  <frameworks>\n    <framework>React</framework>\n    <framework>Vue</framework>\n    <framework>Angular</framework>\n    <framework>Express</framework>\n    <framework>FastAPI</framework>\n    <framework>Spring Boot</framework>\n  </frameworks>\n</agent>`,
-        plaintext: `CODE ARCHITECT PRO\n\nPrice: 5,000 WAGUS tokens\nVersion: 2.1.0\nAuthor: WAGUS AI Labs\n\nDESCRIPTION:\nAdvanced AI agent for enterprise-grade code architecture and design.\n\nCAPABILITIES:\n- Generate complete application architectures\n- Implement proven design patterns\n- Optimize code performance and scalability\n- Create comprehensive technical documentation\n- Support multiple programming languages\n\nSUPPORTED LANGUAGES:\n- TypeScript/JavaScript\n- Python\n- Java\n- C#\n- Go\n- Rust\n\nFRAMEWORKS:\n- React, Vue, Angular\n- Express, FastAPI\n- Spring Boot, .NET\n\nREQUIREMENTS:\n- Minimum 8GB RAM\n- Node.js 18+\n- API access to OpenAI or Claude\n\nINSTALLATION:\n1. Download agent package\n2. Install dependencies\n3. Configure API keys\n4. Run initialization script`
-      },
-      author: 'WAGUS AI Labs',
-      version: '2.1.0',
-      lastUpdated: '2025-01-15',
-      compatibility: ['Node.js 18+', 'Python 3.9+', 'Docker'],
-      requirements: ['8GB RAM', 'OpenAI API', 'Git'],
-      preview: 'https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=futuristic%20AI%20code%20architect%20holographic%20interface%20with%20glowing%20code%20structures&image_size=landscape_16_9'
-    },
-    {
-      id: 'data-wizard',
-      name: 'Data Wizard Elite',
-      description: 'Advanced data analysis and machine learning agent',
-      longDescription: 'Data Wizard Elite transforms raw data into actionable insights using advanced machine learning algorithms, statistical analysis, and predictive modeling capabilities.',
-      category: 'Data Science',
-      price: 7500,
-      rating: 4.8,
-      reviews: 892,
-      downloads: 5643,
-      featured: true,
-      premium: true,
-      tags: ['Machine Learning', 'Data Analysis', 'Predictive Modeling', 'Statistics'],
-      capabilities: [
-        'Advanced statistical analysis',
-        'Machine learning model training',
-        'Predictive analytics',
-        'Data visualization',
-        'Automated feature engineering'
-      ],
-      documentation: {
-        markdown: `# Data Wizard Elite\n\n## Overview\nTransform your data into powerful insights with advanced ML capabilities.\n\n## Features\n- **Statistical Analysis**: Comprehensive statistical modeling\n- **ML Training**: Automated model training and optimization\n- **Predictions**: Advanced predictive analytics\n- **Visualization**: Interactive data visualizations\n\n## Example Usage\n\`\`\`python\nfrom data_wizard import DataWizardElite\n\nwizard = DataWizardElite()\nmodel = wizard.train_model(\n    data=df,\n    target='sales',\n    model_type='regression'\n)\n\npredictions = wizard.predict(new_data)\n\`\`\``,
-        xml: `<?xml version="1.0" encoding="UTF-8"?>\n<dataWizard>\n  <capabilities>\n    <analysis type="statistical" />\n    <modeling type="machine_learning" />\n    <prediction type="advanced" />\n    <visualization type="interactive" />\n  </capabilities>\n  <algorithms>\n    <algorithm>Random Forest</algorithm>\n    <algorithm>XGBoost</algorithm>\n    <algorithm>Neural Networks</algorithm>\n    <algorithm>SVM</algorithm>\n  </algorithms>\n</dataWizard>`,
-        plaintext: `DATA WIZARD ELITE\n\nPrice: 7,500 WAGUS tokens\n\nAdvanced data science and machine learning agent:\n- Statistical analysis and modeling\n- Automated ML model training\n- Predictive analytics\n- Interactive data visualization\n- Feature engineering\n\nSupported algorithms:\n- Random Forest\n- XGBoost\n- Neural Networks\n- Support Vector Machines\n- Deep Learning models\n\nData formats:\n- CSV, JSON, Parquet\n- SQL databases\n- APIs and streaming data\n\nRequirements:\n- Python 3.9+\n- 16GB RAM recommended\n- GPU for deep learning (optional)`
-      },
-      author: 'DataCorp Analytics',
-      version: '3.2.1',
-      lastUpdated: '2025-01-12',
-      compatibility: ['Python 3.9+', 'Jupyter', 'Docker'],
-      requirements: ['16GB RAM', 'Python ML Stack', 'GPU (optional)'],
-      preview: 'https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=advanced%20data%20visualization%20dashboard%20with%20AI%20analytics%20charts%20and%20graphs&image_size=landscape_16_9'
-    },
-    {
-      id: 'security-sentinel',
-      name: 'Security Sentinel Pro',
-      description: 'Comprehensive cybersecurity and threat detection agent',
-      longDescription: 'Security Sentinel Pro provides enterprise-grade security analysis, vulnerability detection, and threat intelligence to protect your applications and infrastructure.',
-      category: 'Security',
-      price: 12000,
-      rating: 4.9,
-      reviews: 567,
-      downloads: 3421,
-      featured: true,
-      premium: true,
-      tags: ['Cybersecurity', 'Threat Detection', 'Vulnerability Assessment', 'Compliance'],
-      capabilities: [
-        'Automated vulnerability scanning',
-        'Threat intelligence analysis',
-        'Security compliance checking',
-        'Incident response automation',
-        'Penetration testing simulation'
-      ],
-      documentation: {
-        markdown: `# Security Sentinel Pro\n\n## Overview\nEnterprise-grade cybersecurity agent for comprehensive threat protection.\n\n## Core Features\n- **Vulnerability Scanning**: Automated security assessments\n- **Threat Intelligence**: Real-time threat analysis\n- **Compliance**: GDPR, SOC2, ISO27001 compliance\n- **Incident Response**: Automated response workflows\n\n## Security Frameworks\n- OWASP Top 10\n- NIST Cybersecurity Framework\n- CIS Controls\n- MITRE ATT&CK\n\n## Usage\n\`\`\`python\nsentinel = SecuritySentinel()\nresults = sentinel.scan_application(\n    target='https://myapp.com',\n    depth='comprehensive'\n)\n\`\`\``,
-        xml: `<?xml version="1.0" encoding="UTF-8"?>\n<securitySentinel>\n  <scanTypes>\n    <scan type="vulnerability" />\n    <scan type="penetration" />\n    <scan type="compliance" />\n    <scan type="threat_intelligence" />\n  </scanTypes>\n  <frameworks>\n    <framework>OWASP</framework>\n    <framework>NIST</framework>\n    <framework>CIS</framework>\n    <framework>MITRE</framework>\n  </frameworks>\n</securitySentinel>`,
-        plaintext: `SECURITY SENTINEL PRO\n\nPrice: 12,000 WAGUS tokens\n\nComprehensive cybersecurity agent:\n- Automated vulnerability scanning\n- Real-time threat intelligence\n- Security compliance checking\n- Incident response automation\n- Penetration testing simulation\n\nSecurity frameworks:\n- OWASP Top 10\n- NIST Cybersecurity Framework\n- CIS Controls\n- MITRE ATT&CK\n\nCompliance standards:\n- GDPR\n- SOC2\n- ISO27001\n- PCI DSS\n\nRequirements:\n- Linux/Windows/macOS\n- Network access\n- Admin privileges\n- 8GB RAM minimum`
-      },
-      author: 'CyberGuard Systems',
-      version: '4.0.2',
-      lastUpdated: '2025-01-10',
-      compatibility: ['Linux', 'Windows', 'macOS', 'Docker'],
-      requirements: ['Admin privileges', 'Network access', '8GB RAM'],
-      preview: 'https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=cybersecurity%20dashboard%20with%20threat%20detection%20shields%20and%20security%20monitoring&image_size=landscape_16_9'
-    },
-    {
-      id: 'blockchain-builder',
-      name: 'Blockchain Builder Supreme',
-      description: 'Advanced blockchain and smart contract development agent',
-      longDescription: 'Blockchain Builder Supreme creates sophisticated blockchain applications, smart contracts, and DeFi protocols with enterprise-grade security and optimization.',
-      category: 'Blockchain',
-      price: 15000,
-      rating: 4.7,
-      reviews: 423,
-      downloads: 2156,
-      featured: true,
-      premium: true,
-      tags: ['Blockchain', 'Smart Contracts', 'DeFi', 'Web3'],
-      capabilities: [
-        'Smart contract development',
-        'DeFi protocol creation',
-        'NFT marketplace building',
-        'Cross-chain integration',
-        'Security auditing'
-      ],
-      documentation: {
-        markdown: `# Blockchain Builder Supreme\n\n## Overview\nCreate sophisticated blockchain applications and smart contracts.\n\n## Supported Blockchains\n- Ethereum\n- Solana\n- Polygon\n- Binance Smart Chain\n- Avalanche\n\n## Features\n- **Smart Contracts**: Solidity, Rust, Move\n- **DeFi Protocols**: DEX, Lending, Staking\n- **NFT Systems**: Marketplaces, Collections\n- **Cross-chain**: Bridge development\n\n## Example\n\`\`\`solidity\ncontract MyDeFiProtocol {\n    function stake(uint256 amount) external {\n        // Staking logic\n    }\n}\n\`\`\``,
-        xml: `<?xml version="1.0" encoding="UTF-8"?>\n<blockchainBuilder>\n  <blockchains>\n    <blockchain>Ethereum</blockchain>\n    <blockchain>Solana</blockchain>\n    <blockchain>Polygon</blockchain>\n    <blockchain>BSC</blockchain>\n  </blockchains>\n  <protocols>\n    <protocol type="defi" />\n    <protocol type="nft" />\n    <protocol type="dao" />\n  </protocols>\n</blockchainBuilder>`,
-        plaintext: `BLOCKCHAIN BUILDER SUPREME\n\nPrice: 15,000 WAGUS tokens\n\nAdvanced blockchain development:\n- Smart contract creation (Solidity, Rust)\n- DeFi protocol development\n- NFT marketplace building\n- Cross-chain bridge development\n- Security auditing tools\n\nSupported blockchains:\n- Ethereum\n- Solana\n- Polygon\n- Binance Smart Chain\n- Avalanche\n\nProtocol types:\n- DEX (Decentralized Exchange)\n- Lending protocols\n- Staking systems\n- NFT marketplaces\n- DAO governance\n\nRequirements:\n- Node.js 18+\n- Blockchain development tools\n- Wallet integration\n- Test network access`
-      },
-      author: 'Web3 Innovations',
-      version: '1.8.0',
-      lastUpdated: '2025-01-08',
-      compatibility: ['Ethereum', 'Solana', 'Polygon', 'BSC'],
-      requirements: ['Node.js 18+', 'Web3 tools', 'Wallet'],
-      preview: 'https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=futuristic%20blockchain%20network%20with%20smart%20contracts%20and%20cryptocurrency%20nodes&image_size=landscape_16_9'
-    },
-    {
-      id: 'quantum-ai',
-      name: 'Quantum AI Researcher',
-      description: 'Cutting-edge quantum computing and AI research agent',
-      longDescription: 'Quantum AI Researcher pushes the boundaries of quantum computing and artificial intelligence, developing quantum algorithms and hybrid quantum-classical systems.',
-      category: 'Research',
-      price: 25000,
-      rating: 5.0,
-      reviews: 89,
-      downloads: 234,
-      featured: true,
-      premium: true,
-      tags: ['Quantum Computing', 'AI Research', 'Algorithms', 'Innovation'],
-      capabilities: [
-        'Quantum algorithm development',
-        'Quantum machine learning',
-        'Quantum cryptography',
-        'Hybrid quantum-classical systems',
-        'Research paper generation'
-      ],
-      documentation: {
-        markdown: `# Quantum AI Researcher\n\n## Overview\nPioneering quantum computing and AI research capabilities.\n\n## Quantum Capabilities\n- **Algorithms**: Shor's, Grover's, VQE\n- **ML**: Quantum neural networks\n- **Cryptography**: Post-quantum security\n- **Simulation**: Quantum system modeling\n\n## Research Areas\n- Quantum supremacy\n- Quantum error correction\n- Quantum networking\n- Quantum sensing\n\n## Example\n\`\`\`python\nfrom quantum_ai import QuantumResearcher\n\nresearcher = QuantumResearcher()\nalgorithm = researcher.develop_quantum_algorithm(\n    problem='optimization',\n    qubits=50\n)\n\`\`\``,
-        xml: `<?xml version="1.0" encoding="UTF-8"?>\n<quantumAI>\n  <algorithms>\n    <algorithm>Shor</algorithm>\n    <algorithm>Grover</algorithm>\n    <algorithm>VQE</algorithm>\n    <algorithm>QAOA</algorithm>\n  </algorithms>\n  <research>\n    <area>Quantum Supremacy</area>\n    <area>Error Correction</area>\n    <area>Quantum Networking</area>\n  </research>\n</quantumAI>`,
-        plaintext: `QUANTUM AI RESEARCHER\n\nPrice: 25,000 WAGUS tokens\n\nCutting-edge quantum research:\n- Quantum algorithm development\n- Quantum machine learning\n- Post-quantum cryptography\n- Hybrid quantum-classical systems\n- Research paper generation\n\nQuantum algorithms:\n- Shor's algorithm\n- Grover's algorithm\n- Variational Quantum Eigensolver\n- Quantum Approximate Optimization\n\nResearch areas:\n- Quantum supremacy\n- Quantum error correction\n- Quantum networking\n- Quantum sensing\n\nRequirements:\n- Quantum simulator access\n- High-performance computing\n- Advanced mathematics background\n- Research institution access`
-      },
-      author: 'Quantum Labs Institute',
-      version: '0.9.1',
-      lastUpdated: '2025-01-05',
-      compatibility: ['Qiskit', 'Cirq', 'PennyLane'],
-      requirements: ['Quantum simulator', 'HPC access', 'PhD level'],
-      preview: 'https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=quantum%20computer%20with%20glowing%20qubits%20and%20AI%20neural%20networks%20in%20laboratory&image_size=landscape_16_9'
-    }
+  // Mock agent data with pricing based on complexity and demand
+  const mockAgents: Agent[] = [
+    // Engineering - High demand, complex
+    { id: 'ai-engineer', name: 'AI Engineer', category: 'Engineering', description: 'Advanced AI development and machine learning expertise', price: 25000, tier: 'Legendary', rating: 4.9, downloads: 1250, tags: ['AI', 'ML', 'Python', 'TensorFlow'], content: '', preview: 'Build cutting-edge AI applications with expert guidance', isPurchased: false, featured: true, premium: true, reviews: 150, capabilities: ['AI Development', 'ML Models'], documentation: { markdown: '', xml: '', plaintext: '' }, author: 'AI Corp', version: '1.0.0', lastUpdated: '2025-01-15', compatibility: ['Python'], requirements: ['GPU'], longDescription: 'Advanced AI development and machine learning expertise' },
+    { id: 'backend-architect', name: 'Backend Architect', category: 'Engineering', description: 'Scalable backend systems and microservices design', price: 18000, tier: 'Enterprise', rating: 4.8, downloads: 980, tags: ['Backend', 'Microservices', 'API'], content: '', preview: 'Design robust, scalable backend architectures', isPurchased: false, featured: true, premium: true, reviews: 120, capabilities: ['Backend Design', 'Microservices'], documentation: { markdown: '', xml: '', plaintext: '' }, author: 'Backend Pro', version: '1.0.0', lastUpdated: '2025-01-15', compatibility: ['Node.js'], requirements: ['Docker'], longDescription: 'Scalable backend systems and microservices design' },
+    { id: 'frontend-developer', name: 'Frontend Developer', category: 'Engineering', description: 'Modern React and TypeScript development', price: 12000, tier: 'Professional', rating: 4.6, downloads: 1100, tags: ['React', 'TypeScript', 'UI'], content: '', preview: 'Build beautiful, responsive user interfaces', isPurchased: false, featured: false, premium: false, reviews: 200, capabilities: ['React Development', 'TypeScript'], documentation: { markdown: '', xml: '', plaintext: '' }, author: 'Frontend Studio', version: '1.0.0', lastUpdated: '2025-01-15', compatibility: ['React'], requirements: ['Node.js'], longDescription: 'Modern React and TypeScript development' }
   ]
 
   useEffect(() => {
-    setAgents(premiumAgents)
-    
-    // Load favorites from localStorage
-    const savedFavorites = localStorage.getItem('wagus-agent-favorites')
-    if (savedFavorites) {
-      setFavorites(new Set(JSON.parse(savedFavorites)))
+    // Load agents from markdown files
+    const loadAgents = async () => {
+      try {
+        const loadedAgents = await loadAgentsFromMarkdown()
+        setAgents(loadedAgents)
+        setFilteredAgents(loadedAgents)
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to load agents:', error)
+        // Fallback to mock data
+        setAgents(mockAgents)
+        setFilteredAgents(mockAgents)
+        setLoading(false)
+      }
     }
+    
+    loadAgents()
   }, [])
 
-  const filteredAgents = agents.filter(agent => {
-    const matchesSearch = agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         agent.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         agent.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesCategory = selectedCategory === 'all' || agent.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  useEffect(() => {
+    let filtered = agents
 
-  const sortedAgents = [...filteredAgents].sort((a, b) => {
-    switch (sortBy) {
-      case 'price-low': return a.price - b.price
-      case 'price-high': return b.price - a.price
-      case 'rating': return b.rating - a.rating
-      case 'downloads': return b.downloads - a.downloads
-      case 'newest': return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-      default: return b.downloads - a.downloads // popularity
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(agent => agent.category === selectedCategory)
     }
-  })
+
+    // Filter by tier
+    if (selectedTier !== 'all') {
+      filtered = filtered.filter(agent => agent.tier === selectedTier)
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(agent => 
+        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'price':
+          return b.price - a.price
+        case 'rating':
+          return b.rating - a.rating
+        case 'downloads':
+          return b.downloads - a.downloads
+        default:
+          return a.name.localeCompare(b.name)
+      }
+    })
+
+    setFilteredAgents(filtered)
+  }, [agents, selectedCategory, selectedTier, searchQuery, sortBy])
+
+  const handlePurchase = (agent: Agent) => {
+    if (userCredits >= agent.price) {
+      setUserCredits(prev => prev - agent.price)
+      setAgents(prev => prev.map(a => 
+        a.id === agent.id ? { ...a, isPurchased: true } : a
+      ))
+      toast.success(`Successfully purchased ${agent.name}!`)
+    } else {
+      toast.error('Insufficient WAGUS credits!')
+    }
+  }
 
   const toggleFavorite = (agentId: string) => {
     const newFavorites = new Set(favorites)
@@ -277,35 +134,45 @@ const AgentShop = () => {
     localStorage.setItem('wagus-agent-favorites', JSON.stringify([...newFavorites]))
   }
 
-  const purchaseAgent = (agent: Agent) => {
-    if (credits < agent.price) {
-      setSelectedAgent(agent)
-      setShowPurchaseModal(true)
-      return
-    }
-
-    updateCredits(-agent.price)
-    toast.success(`Successfully purchased ${agent.name} for ${agent.price} WAGUS tokens!`)
-    
-    // Save purchased agent
-    const purchased = JSON.parse(localStorage.getItem('wagus-purchased-agents') || '[]')
-    purchased.push({
-      ...agent,
-      purchaseDate: new Date().toISOString()
-    })
-    localStorage.setItem('wagus-purchased-agents', JSON.stringify(purchased))
-  }
-
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'Development': return <Code className="w-5 h-5" />
-      case 'AI/ML': return <Brain className="w-5 h-5" />
-      case 'Data Science': return <Database className="w-5 h-5" />
-      case 'Security': return <Shield className="w-5 h-5" />
-      case 'Blockchain': return <Cpu className="w-5 h-5" />
+      case 'Engineering': return <Code className="w-5 h-5" />
+      case 'Design': return <Palette className="w-5 h-5" />
+      case 'Marketing': return <TrendingUp className="w-5 h-5" />
+      case 'Product': return <Package className="w-5 h-5" />
+      case 'Project Management': return <Users className="w-5 h-5" />
+      case 'Studio Operations': return <Settings className="w-5 h-5" />
+      case 'Testing': return <CheckCircle className="w-5 h-5" />
+      case 'Bonus': return <Gift className="w-5 h-5" />
       case 'Research': return <FileText className="w-5 h-5" />
       default: return <Zap className="w-5 h-5" />
     }
+  }
+
+  const getTierIcon = (tier: string) => {
+    const Icon = TIER_ICONS[tier as keyof typeof TIER_ICONS]
+    return Icon ? <Icon className="w-4 h-4" /> : null
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -323,7 +190,7 @@ const AgentShop = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg">
               <CreditCard className="w-5 h-5 text-orange-600" />
-              <span className="font-medium text-orange-700">{credits.toLocaleString()} WAGUS</span>
+              <span className="font-medium text-orange-700">{userCredits.toLocaleString()} WAGUS</span>
             </div>
           </div>
         </div>
@@ -356,14 +223,12 @@ const AgentShop = () => {
             
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'price' | 'rating' | 'downloads')}
               className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
-              <option value="popularity">Most Popular</option>
+              <option value="name">Name</option>
               <option value="rating">Highest Rated</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="newest">Newest</option>
+              <option value="price">Price: High to Low</option>
               <option value="downloads">Most Downloaded</option>
             </select>
           </div>
@@ -373,12 +238,12 @@ const AgentShop = () => {
       {/* Agent Grid */}
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedAgents.map((agent) => (
+          {filteredAgents.map((agent) => (
             <div key={agent.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
               {/* Agent Preview Image */}
               <div className="relative h-48 bg-gradient-to-br from-orange-400 to-purple-600">
                 <img
-                  src={agent.preview}
+                  src={`https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(agent.description)}&image_size=landscape_16_9`}
                   alt={agent.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -457,7 +322,7 @@ const AgentShop = () => {
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => purchaseAgent(agent)}
+                      onClick={() => handlePurchase(agent)}
                       className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
                     >
                       <ShoppingCart className="w-4 h-4" />
@@ -470,7 +335,7 @@ const AgentShop = () => {
           ))}
         </div>
 
-        {sortedAgents.length === 0 && (
+        {filteredAgents.length === 0 && (
           <div className="text-center py-12">
             <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No agents found</h3>
@@ -503,162 +368,25 @@ const AgentShop = () => {
                   onClick={() => setSelectedAgent(null)}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <XCircle className="w-6 h-6" />
+                  ✕
                 </button>
               </div>
             </div>
-
-            <div className="p-6 max-h-[60vh] overflow-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3">Documentation</h3>
-                    <div className="flex space-x-1 mb-4">
-                      {(['markdown', 'xml', 'plaintext'] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveTab(tab)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            activeTab === tab
-                              ? 'bg-orange-600 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
-                      <pre className="text-sm text-gray-800 whitespace-pre-wrap">
-                        {selectedAgent.documentation[activeTab]}
-                      </pre>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Capabilities</h3>
-                    <ul className="space-y-2">
-                      {selectedAgent.capabilities.map((capability, index) => (
-                        <li key={index} className="flex items-center space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span className="text-gray-700">{capability}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">{selectedAgent.longDescription}</p>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-orange-600">
+                  {selectedAgent.price.toLocaleString()} WAGUS
                 </div>
-
-                <div>
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <div className="text-3xl font-bold text-orange-600 mb-2">
-                      {selectedAgent.price.toLocaleString()} WAGUS
-                    </div>
-                    <button
-                      onClick={() => purchaseAgent(selectedAgent)}
-                      className="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      <span>Purchase Agent</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Requirements</h4>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        {selectedAgent.requirements.map((req, index) => (
-                          <li key={index}>• {req}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Compatibility</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedAgent.compatibility.map((comp, index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            {comp}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Tags</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedAgent.tags.map((tag, index) => (
-                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Insufficient Credits Modal */}
-      {showPurchaseModal && selectedAgent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Insufficient WAGUS Tokens</h3>
-              <button
-                onClick={() => setShowPurchaseModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
-                <div>
-                  <p className="text-gray-900 font-medium">Not enough tokens to purchase this agent</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    You need {selectedAgent.price.toLocaleString()} WAGUS tokens to purchase {selectedAgent.name}.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Your current tokens:</span>
-                  <span className="font-medium">{credits.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Required tokens:</span>
-                  <span className="font-medium">{selectedAgent.price.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm border-t pt-2 mt-2">
-                  <span className="text-gray-600">Tokens needed:</span>
-                  <span className="font-medium text-red-600">
-                    {(selectedAgent.price - credits).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex space-x-3 pt-4">
-                <button
-                  onClick={() => setShowPurchaseModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
                 <button
                   onClick={() => {
-                    setShowPurchaseModal(false)
-                    navigate('/payment')
+                    handlePurchase(selectedAgent)
+                    setSelectedAgent(null)
                   }}
-                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center"
+                  className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
                 >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Buy Tokens
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>Purchase Agent</span>
                 </button>
               </div>
             </div>
@@ -668,5 +396,3 @@ const AgentShop = () => {
     </div>
   )
 }
-
-export default AgentShop

@@ -527,7 +527,7 @@ const CommandInterface = () => {
         {/* Sessions Sidebar */}
         <div className="w-80 border-r border-gray-200 bg-gray-50">
           <div className="p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Active Sessions</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Sessions</h3>
             <div className="space-y-2">
               {sessions.map((session) => (
                 <button

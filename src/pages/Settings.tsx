@@ -344,8 +344,8 @@ const Settings = () => {
   )
 
   const renderAppearanceSettings = () => {
-     const { checkThemeOwnership } = useTheme();
-     const premiumThemes = ['neon', 'minimal', 'cyberpunk', 'matrix'];
+    const { checkThemeOwnership } = useTheme();
+    const premiumThemes = ['neon', 'minimal', 'cyberpunk', 'matrix'];
     
     return (
       <div className="space-y-6">
@@ -367,21 +367,21 @@ const Settings = () => {
             <select
               value={wagusTheme}
               onChange={(e) => {
-                 const newTheme = e.target.value as 'default' | 'dark' | 'neon' | 'minimal' | 'cyberpunk' | 'matrix';
-                 if (checkThemeOwnership(newTheme)) {
-                   setWagusTheme(newTheme);
-                   setSettings(prev => ({
-                     ...prev,
-                     appearance: { ...prev.appearance, wagusTheme: newTheme }
-                   }));
-                   toast.success(`Theme changed to ${newTheme}!`);
-                 } else {
-                   toast.error('This theme requires purchase. Click on the theme below to buy it.');
-                 }
+                const newTheme = e.target.value as WagusTheme;
+                if (checkThemeOwnership(newTheme)) {
+                  setWagusTheme(newTheme);
+                  setSettings(prev => ({
+                    ...prev,
+                    appearance: { ...prev.appearance, wagusTheme: newTheme }
+                  }));
+                  toast.success(`Theme changed to ${newTheme}!`);
+                } else {
+                  toast.error('This theme requires purchase. Click on the theme below to buy it.');
+                }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
-              {/* Only show owned themes in dropdown */}
+              {/* Show all themes, but indicate ownership status */}
               {[
                 { id: 'default', name: 'Default WAGUS' },
                 { id: 'dark', name: 'Dark Mode' },
@@ -389,15 +389,20 @@ const Settings = () => {
                 { id: 'minimal', name: 'Minimal Clean' },
                 { id: 'cyberpunk', name: 'Cyberpunk' },
                 { id: 'matrix', name: 'Matrix Rain' }
-              ].filter(theme => checkThemeOwnership(theme.id as WagusTheme)).map(theme => (
-                <option key={theme.id} value={theme.id}>{theme.name}</option>
-              ))}
+              ].map(theme => {
+                const isOwned = checkThemeOwnership(theme.id as WagusTheme);
+                return (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.name} {isOwned ? '✓' : '🔒'}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-               { id: 'default', name: 'Default WAGUS', preview: 'bg-gradient-to-br from-orange-400 to-purple-600', price: null },
+              { id: 'default', name: 'Default WAGUS', preview: 'bg-gradient-to-br from-orange-400 to-purple-600', price: null },
                { id: 'dark', name: 'Dark Mode', preview: 'bg-gradient-to-br from-gray-800 to-black', price: 500 },
                { id: 'neon', name: 'Neon Glow', preview: 'bg-gradient-to-br from-green-400 to-blue-500', price: 1000 },
                { id: 'minimal', name: 'Minimal Clean', preview: 'bg-gradient-to-br from-gray-100 to-white border-2 border-gray-300', price: 750 },
