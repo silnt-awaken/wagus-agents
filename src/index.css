@@ -11,4 +11,238 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Default WAGUS Theme Variables */
+  --primary: 249 115 22;
+  --primary-foreground: 255 255 255;
+  --secondary: 147 51 234;
+  --secondary-foreground: 255 255 255;
+  --background: 255 255 255;
+  --foreground: 17 24 39;
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+  --border: 229 231 235;
+  --accent: 251 146 60;
+  --accent-foreground: 255 255 255;
+}
+
+/* Theme-aware utility classes */
+.bg-primary {
+  background-color: rgb(var(--primary));
+}
+
+.text-primary {
+  color: rgb(var(--primary));
+}
+
+.bg-secondary {
+  background-color: rgb(var(--secondary));
+}
+
+.text-secondary {
+  color: rgb(var(--secondary));
+}
+
+.bg-background {
+  background-color: rgb(var(--background));
+}
+
+.text-foreground {
+  color: rgb(var(--foreground));
+}
+
+.bg-card {
+  background-color: rgb(var(--card));
+}
+
+.text-card-foreground {
+  color: rgb(var(--card-foreground));
+}
+
+.border-border {
+  border-color: rgb(var(--border));
+}
+
+.bg-accent {
+  background-color: rgb(var(--accent));
+}
+
+.text-accent-foreground {
+  color: rgb(var(--accent-foreground));
+}
+
+/* Enhanced theme transitions with animations */
+* {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth entrance animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+@keyframes matrixGlow {
+  0%, 100% {
+    text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
+  }
+  50% {
+    text-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0;
+  }
+}
+
+/* Theme-specific body styling */
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+}
+
+/* Neon theme glow effects */
+.neon .border-border {
+  box-shadow: 0 0 5px rgb(var(--border));
+}
+
+.neon .bg-primary {
+  box-shadow: 0 0 10px rgb(var(--primary));
+}
+
+.neon .text-primary {
+  text-shadow: 0 0 5px rgb(var(--primary));
+}
+
+/* Cyberpunk theme effects */
+.cyberpunk .bg-card {
+  border: 1px solid rgb(var(--border));
+  box-shadow: 0 0 15px rgba(var(--primary), 0.3);
+}
+
+.cyberpunk .text-primary {
+  text-shadow: 0 0 8px rgb(var(--primary));
+}
+
+/* Minimal theme clean styling */
+.minimal * {
+  border-radius: 4px;
+}
+
+.minimal .bg-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Matrix theme effects */
+.matrix {
+  background: #000;
+  overflow: hidden;
+}
+
+.matrix .bg-card {
+  background: rgba(0, 50, 0, 0.8);
+  border: 1px solid #0f0;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.1);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.matrix .text-primary,
+.matrix .text-foreground {
+  animation: matrixGlow 1.5s ease-in-out infinite alternate;
+}
+
+.matrix button:hover {
+  background: rgba(0, 255, 0, 0.2) !important;
+  box-shadow: 0 0 15px #0f0;
+  transform: scale(1.05);
+}
+
+.matrix input {
+  background: rgba(0, 50, 0, 0.8) !important;
+  border: 1px solid #0f0 !important;
+  color: #0f0 !important;
+}
+
+.matrix input:focus {
+  box-shadow: 0 0 10px #0f0 !important;
+  border-color: #0f0 !important;
+}
+
+/* Enhanced animations for all themes */
+.bg-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+button {
+  transition: all 0.2s ease;
+  animation: slideInRight 0.4s ease-out;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.neon button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 20px rgb(var(--primary));
+}
+
+.cyberpunk button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(var(--primary), 0.5);
+}
+
+/* Loading animations */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Card hover effects */
+.bg-card:hover {
+  transform: translateY(-4px);
+  transition: transform 0.3s ease;
+}
+
+.neon .bg-card:hover {
+  box-shadow: 0 0 25px rgb(var(--border));
+}
+
+.cyberpunk .bg-card:hover {
+  box-shadow: 0 0 30px rgba(var(--primary), 0.4);
+}
+
+.matrix .bg-card:hover {
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 20px rgba(0, 255, 0, 0.2);
 }

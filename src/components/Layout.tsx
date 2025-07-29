@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   User,
-  LogOut
+  LogOut,
+  Zap
 } from 'lucide-react'
 import { useAuth } from '../components/AuthProvider'
 
@@ -29,28 +30,29 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Contexts', href: '/contexts', icon: FolderOpen },
     { name: 'Commands', href: '/commands', icon: Terminal },
     { name: 'Repository', href: '/repository', icon: GitBranch },
+    { name: 'Prompt Optimizer', href: '/prompt-optimizer', icon: Zap },
     { name: 'Payments', href: '/payments', icon: CreditCard },
     { name: 'Settings', href: '/settings', icon: SettingsIcon },
   ]
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen" style={{ backgroundColor: `rgb(var(--background))` }}>
       {/* Left Sidebar */}
-      <div className={`${leftPanelOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-slate-800 text-white flex flex-col`}>
+      <div className={`${leftPanelOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex flex-col`} style={{ backgroundColor: `rgb(var(--card))`, color: `rgb(var(--card-foreground))` }}>
         {/* Header */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b" style={{ borderColor: `rgb(var(--border))` }}>
           <div className="flex items-center justify-between">
             {leftPanelOpen ? (
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8">
-                  <svg viewBox="0 0 100 100" className="w-full h-full text-orange-400">
+                  <svg viewBox="0 0 100 100" className="w-full h-full" style={{ color: `rgb(var(--primary))` }}>
                     <path d="M20 20 L80 20 L70 80 L30 80 Z" fill="currentColor" />
                     <path d="M35 35 L45 35 L40 65 L30 65 Z" fill="#1e293b" />
                     <path d="M55 35 L65 35 L70 65 L60 65 Z" fill="#1e293b" />
                     <path d="M45 45 L55 45 L50 60 L45 60 Z" fill="#1e293b" />
                   </svg>
                 </div>
-                <h1 className="text-xl font-bold text-orange-400">WAGUS Agents</h1>
+                <h1 className="text-xl font-bold" style={{ color: `rgb(var(--primary))` }}>WAGUS Agents</h1>
               </div>
             ) : (
               <div className="w-8 h-8">
@@ -64,7 +66,8 @@ const Layout = ({ children }: LayoutProps) => {
             )}
             <button
               onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-              className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg transition-colors"
+
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -81,11 +84,11 @@ const Layout = ({ children }: LayoutProps) => {
                 <li key={item.name}>
                   <Link
                     to={item.href}
-                    className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-orange-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                    }`}
+                    className="flex items-center px-3 py-2 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: isActive ? `rgb(var(--primary))` : 'transparent',
+                      color: isActive ? `rgb(var(--primary-foreground))` : `rgb(var(--foreground) / 0.7)`
+                    }}
                   >
                     <Icon className="w-5 h-5" />
                     {leftPanelOpen && <span className="ml-3">{item.name}</span>}
@@ -98,9 +101,9 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* User Profile */}
         {user && (
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t" style={{ borderColor: `rgb(var(--border))` }}>
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `rgb(var(--primary))` }}>
                 <User className="w-4 h-4" />
               </div>
               {leftPanelOpen && (
@@ -108,10 +111,11 @@ const Layout = ({ children }: LayoutProps) => {
                   <p className="text-sm font-medium">
                     {user.publicKey.slice(0, 4)}...{user.publicKey.slice(-4)}
                   </p>
-                  <p className="text-xs text-slate-400">{credits} credits</p>
+                  <p className="text-xs" style={{ color: `rgb(var(--foreground) / 0.6)` }}>{credits} credits</p>
                   <button
                     onClick={signOut}
-                    className="text-xs text-slate-400 hover:text-white flex items-center mt-1"
+                    className="text-xs flex items-center mt-1 transition-colors"
+                    style={{ color: `rgb(var(--foreground) / 0.6)` }}
                   >
                     <LogOut className="w-3 h-3 mr-1" />
                     Disconnect
@@ -126,37 +130,32 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="border-b px-6 py-4" style={{ backgroundColor: `rgb(var(--card))`, borderColor: `rgb(var(--border))` }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold" style={{ color: `rgb(var(--foreground))` }}>
                 {navigation.find(item => item.href === location.pathname)?.name || 'WAGUS Agents'}
               </h2>
             </div>
             <div className="flex items-center space-x-4">
               {/* Credits Display */}
-              <div className="flex items-center space-x-2 bg-orange-50 px-3 py-1 rounded-lg">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span className="text-sm font-medium text-orange-700">{credits} credits</span>
+              <div className="flex items-center space-x-2 px-3 py-1 rounded-lg" style={{ backgroundColor: `rgb(var(--primary) / 0.1)` }}>
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `rgb(var(--primary))` }}></div>
+                <span className="text-sm font-medium" style={{ color: `rgb(var(--primary))` }}>{credits} credits</span>
               </div>
               
               {/* OpenAI Key Status */}
-              <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${
-                openAiKey ? 'bg-green-50' : 'bg-red-50'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  openAiKey ? 'bg-green-500' : 'bg-red-500'
-                }`}></div>
-                <span className={`text-sm font-medium ${
-                  openAiKey ? 'text-green-700' : 'text-red-700'
-                }`}>
+              <div className="flex items-center space-x-2 px-3 py-1 rounded-lg" style={{ backgroundColor: openAiKey ? 'rgb(34 197 94 / 0.1)' : 'rgb(239 68 68 / 0.1)' }}>
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: openAiKey ? 'rgb(34 197 94)' : 'rgb(239 68 68)' }}></div>
+                <span className="text-sm font-medium" style={{ color: openAiKey ? 'rgb(34 197 94)' : 'rgb(239 68 68)' }}>
                   {openAiKey ? 'API Key Set' : 'No API Key'}
                 </span>
               </div>
               
               <button
                 onClick={() => setRightPanelOpen(!rightPanelOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-lg transition-colors"
+
               >
                 {rightPanelOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -173,13 +172,13 @@ const Layout = ({ children }: LayoutProps) => {
 
           {/* Right Panel */}
           {rightPanelOpen && (
-            <div className="w-80 bg-white border-l border-gray-200 overflow-auto">
+            <div className="w-80 border-l overflow-auto" style={{ backgroundColor: `rgb(var(--card))`, borderColor: `rgb(var(--border))` }}>
               <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Repository Explorer</h3>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: `rgb(var(--foreground))` }}>Repository Explorer</h3>
                 <div className="space-y-2">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">No repository connected</p>
-                    <button className="mt-2 text-sm text-orange-600 hover:text-orange-700">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: `rgb(var(--accent) / 0.1)` }}>
+                    <p className="text-sm" style={{ color: `rgb(var(--foreground) / 0.7)` }}>No repository connected</p>
+                    <button className="mt-2 text-sm transition-colors" style={{ color: `rgb(var(--primary))` }}>
                       Connect Repository
                     </button>
                   </div>

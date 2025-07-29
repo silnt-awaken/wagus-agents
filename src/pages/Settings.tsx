@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/useTheme'
+import type { WagusTheme } from '../hooks/useTheme'
 import { toast } from 'sonner'
 import { 
   User, 
@@ -28,6 +30,7 @@ interface SettingsSection {
 
 const Settings = () => {
   const { user, signOut, signMessage } = useAuth()
+  const { wagusTheme, setWagusTheme } = useTheme()
   const [activeSection, setActiveSection] = useState('profile')
   const [showApiKey, setShowApiKey] = useState(false)
   const [settings, setSettings] = useState({
@@ -54,7 +57,8 @@ const Settings = () => {
       theme: 'light',
       fontSize: 'medium',
       codeTheme: 'vs-dark',
-      compactMode: false
+      compactMode: false,
+      wagusTheme: wagusTheme
     },
     integrations: {
       githubConnected: false,
@@ -280,7 +284,7 @@ const Settings = () => {
           <h4 className="font-medium text-blue-900">API Access</h4>
         </div>
         <p className="text-sm text-blue-700">
-          Use your API key to integrate Scout.New with external applications.
+          Use your API key to integrate WAGUS with external applications.
         </p>
       </div>
 
@@ -338,6 +342,158 @@ const Settings = () => {
       </div>
     </div>
   )
+
+  const renderAppearanceSettings = () => {
+     const { checkThemeOwnership } = useTheme();
+     const premiumThemes = ['neon', 'minimal', 'cyberpunk', 'matrix'];
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <Palette className="w-5 h-5 text-purple-600" />
+            <h4 className="font-medium text-purple-900">WAGUS Theme</h4>
+          </div>
+          <p className="text-sm text-purple-700">
+            Customize your WAGUS experience with different themes. Premium themes require purchase.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Theme Selection
+            </label>
+            <select
+              value={wagusTheme}
+              onChange={(e) => {
+                 const newTheme = e.target.value as 'default' | 'dark' | 'neon' | 'minimal' | 'cyberpunk' | 'matrix';
+                 if (checkThemeOwnership(newTheme)) {
+                   setWagusTheme(newTheme);
+                   setSettings(prev => ({
+                     ...prev,
+                     appearance: { ...prev.appearance, wagusTheme: newTheme }
+                   }));
+                   toast.success(`Theme changed to ${newTheme}!`);
+                 } else {
+                   toast.error('This theme requires purchase. Click on the theme below to buy it.');
+                 }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              {/* Only show owned themes in dropdown */}
+              {[
+                { id: 'default', name: 'Default WAGUS' },
+                { id: 'dark', name: 'Dark Mode' },
+                { id: 'neon', name: 'Neon Glow' },
+                { id: 'minimal', name: 'Minimal Clean' },
+                { id: 'cyberpunk', name: 'Cyberpunk' },
+                { id: 'matrix', name: 'Matrix Rain' }
+              ].filter(theme => checkThemeOwnership(theme.id as WagusTheme)).map(theme => (
+                <option key={theme.id} value={theme.id}>{theme.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+               { id: 'default', name: 'Default WAGUS', preview: 'bg-gradient-to-br from-orange-400 to-purple-600', price: null },
+               { id: 'dark', name: 'Dark Mode', preview: 'bg-gradient-to-br from-gray-800 to-black', price: 500 },
+               { id: 'neon', name: 'Neon Glow', preview: 'bg-gradient-to-br from-green-400 to-blue-500', price: 1000 },
+               { id: 'minimal', name: 'Minimal Clean', preview: 'bg-gradient-to-br from-gray-100 to-white border-2 border-gray-300', price: 750 },
+               { id: 'cyberpunk', name: 'Cyberpunk', preview: 'bg-gradient-to-br from-pink-500 to-cyan-500', price: 1500 },
+               { id: 'matrix', name: 'Matrix Rain', preview: 'bg-gradient-to-br from-green-900 to-black relative overflow-hidden', price: 2000 }
+             ].map((theme) => {
+               const isOwned = checkThemeOwnership(theme.id as 'default' | 'dark' | 'neon' | 'minimal' | 'cyberpunk' | 'matrix');
+               const isPremium = premiumThemes.includes(theme.id);
+              
+              return (
+                <div
+                  key={theme.id}
+                  onClick={() => {
+                    if (isOwned) {
+                      const newTheme = theme.id as 'default' | 'dark' | 'neon' | 'minimal' | 'cyberpunk' | 'matrix';
+                      setWagusTheme(newTheme);
+                      setSettings(prev => ({
+                        ...prev,
+                        appearance: { ...prev.appearance, wagusTheme: newTheme }
+                      }));
+                      toast.success(`Theme changed to ${theme.name}!`);
+                    } else {
+                       toast.info(`Purchase ${theme.name} theme for ${theme.price} WAGUS in the Premium Store`);
+                     }
+                  }}
+                  className={`cursor-pointer border-2 rounded-lg p-4 transition-all relative ${
+                    wagusTheme === theme.id
+                      ? 'border-orange-500 ring-2 ring-orange-200'
+                      : isOwned
+                      ? 'border-gray-200 hover:border-gray-300'
+                      : 'border-gray-200 hover:border-orange-300 opacity-75'
+                  }`}
+                >
+                  {!isOwned && theme.price && (
+                     <div className="absolute top-2 right-2 bg-orange-600 text-white text-xs px-2 py-1 rounded-full">
+                       {theme.price} WAGUS
+                     </div>
+                   )}
+                  
+                  {isOwned && wagusTheme === theme.id && (
+                    <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+                      Active
+                    </div>
+                  )}
+                  
+                  <div className={`w-full h-16 rounded-lg mb-3 ${theme.preview} ${!isOwned ? 'relative' : ''}`}>
+                    {!isOwned && (
+                      <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center">
+                        <div className="text-white text-xs font-medium">🔒 Locked</div>
+                      </div>
+                    )}
+                    {theme.id === 'matrix' && (
+                      <div className="absolute inset-0 flex items-center justify-center text-green-400 text-xs font-mono opacity-60">
+                        01101001 10110100
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900 text-sm flex items-center">
+                        {theme.name}
+                        {isOwned && <span className="ml-2 text-green-600">✓</span>}
+                      </h4>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {theme.id === 'default' && 'Classic WAGUS orange & purple'}
+                        {theme.id === 'dark' && 'Dark theme for night owls'}
+                        {theme.id === 'neon' && 'Bright neon colors'}
+                        {theme.id === 'minimal' && 'Clean and simple'}
+                        {theme.id === 'cyberpunk' && 'Futuristic cyber aesthetic'}
+                        {theme.id === 'matrix' && 'Falling green code rain'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {!isOwned && theme.price && (
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         toast.success(`Redirecting to Premium Store...`);
+                         // Navigate to PaymentPortal
+                         window.location.href = '/payment';
+                       }}
+                       className="w-full mt-3 px-3 py-2 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700 transition-colors"
+                     >
+                       Purchase for {theme.price} WAGUS
+                     </button>
+                   )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderDataSettings = () => (
     <div className="space-y-6">
@@ -406,6 +562,8 @@ const Settings = () => {
         return renderProfileSettings()
       case 'notifications':
         return renderNotificationSettings()
+      case 'appearance':
+        return renderAppearanceSettings()
       case 'api':
         return renderApiSettings()
       case 'data':

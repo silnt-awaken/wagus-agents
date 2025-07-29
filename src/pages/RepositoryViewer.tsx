@@ -90,9 +90,9 @@ const RepositoryViewer = () => {
           type: 'modified',
           file: 'src/components/App.tsx',
           oldContent: 'const App = () => {\n  return <div>Hello World</div>\n}',
-          newContent: 'const App = () => {\n  return <div>Hello Scout.New!</div>\n}',
+          newContent: 'const App = () => {\n  return <div>Hello WAGUS!</div>\n}',
           lineChanges: [
-            { line: 2, type: 'modify', content: '  return <div>Hello Scout.New!</div>' }
+            { line: 2, type: 'modify', content: '  return <div>Hello WAGUS!</div>' }
           ]
         },
         {
