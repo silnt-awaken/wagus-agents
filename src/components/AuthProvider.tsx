@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import wagusLogo from '../assets/wagus_logo.png'
+import AntiSpamService from '../utils/antiSpam'
 
 interface User {
   publicKey: string
@@ -44,31 +45,68 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Load user data from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('wagus-user')
-    const savedCredits = localStorage.getItem('wagus-credits')
-    const savedOpenAiKey = localStorage.getItem('wagus-openai-key')
-    
-    if (savedUser && publicKey) {
-      const userData = JSON.parse(savedUser)
-      if (userData.publicKey === publicKey.toString()) {
-        setUser(userData)
-        setCredits(savedCredits ? parseInt(savedCredits) : 100) // Default 100 credits
-        setOpenAiKey(savedOpenAiKey || '')
+    const handleUserAuth = async () => {
+      const savedUser = localStorage.getItem('wagus-user')
+      const savedCredits = localStorage.getItem('wagus-credits')
+      const savedOpenAiKey = localStorage.getItem('wagus-openai-key')
+      
+      if (savedUser && publicKey) {
+        const userData = JSON.parse(savedUser)
+        if (userData.publicKey === publicKey.toString()) {
+          setUser(userData)
+          setCredits(savedCredits ? parseInt(savedCredits) : 5) // Default 5 credits
+          setOpenAiKey(savedOpenAiKey || '')
+        }
+      } else if (publicKey && connected) {
+        // Check anti-spam before creating new user
+        const antiSpam = AntiSpamService.getInstance()
+        const walletAddress = publicKey.toString()
+        
+        try {
+          const validation = await antiSpam.canRegisterNewUser(walletAddress)
+          
+          if (validation.allowed) {
+            // New user - grant 5 free credits
+            const newUser = {
+              publicKey: walletAddress,
+              credits: 5,
+              openAiKey: ''
+            }
+            setUser(newUser)
+            setCredits(5)
+            localStorage.setItem('wagus-user', JSON.stringify(newUser))
+            localStorage.setItem('wagus-credits', '5')
+            
+            // Register the user in anti-spam system
+            await antiSpam.registerNewUser(walletAddress)
+            
+            // Clean old data periodically
+            antiSpam.cleanOldData()
+          } else {
+            // User blocked by anti-spam
+            console.error('Registration blocked:', validation.reason)
+            alert(`Registration not allowed: ${validation.reason}`)
+            await disconnect()
+          }
+        } catch (error) {
+          console.error('Anti-spam check failed:', error)
+          // Fallback: allow registration but with warning
+          const newUser = {
+            publicKey: walletAddress,
+            credits: 5,
+            openAiKey: ''
+          }
+          setUser(newUser)
+          setCredits(5)
+          localStorage.setItem('wagus-user', JSON.stringify(newUser))
+          localStorage.setItem('wagus-credits', '5')
+        }
       }
-    } else if (publicKey && connected) {
-      // New user
-      const newUser = {
-        publicKey: publicKey.toString(),
-        credits: 100,
-        openAiKey: ''
-      }
-      setUser(newUser)
-      setCredits(100)
-      localStorage.setItem('wagus-user', JSON.stringify(newUser))
-      localStorage.setItem('wagus-credits', '100')
+      setLoading(false)
     }
-    setLoading(false)
-  }, [publicKey, connected])
+    
+    handleUserAuth()
+  }, [publicKey, connected, disconnect])
 
   const signInWithPhantom = async () => {
     // This is handled by the wallet adapter
@@ -180,7 +218,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
             <div className="bg-gray-800 rounded-lg p-4 space-y-3">
               <h3 className="text-white font-medium">What you get:</h3>
               <ul className="text-sm text-gray-300 space-y-1">
-                <li>• 100 free credits to start</li>
+                <li>• 5 free credits to start</li>
                 <li>• Secure local storage</li>
                 <li>• Your own OpenAI API key</li>
                 <li>• Full control over your data</li>

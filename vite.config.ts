@@ -19,12 +19,13 @@ export default defineConfig({
   define: {
     global: 'globalThis',
     'process.env': {},
+    'process.browser': true,
     'globalThis.Buffer': 'Buffer',
   },
   resolve: {
     alias: {
       buffer: 'buffer',
-      process: 'process/browser.js',
+      process: 'process',
       stream: 'stream-browserify',
       util: 'util',
       crypto: 'crypto-browserify',
