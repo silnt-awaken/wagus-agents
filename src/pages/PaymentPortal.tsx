@@ -1398,44 +1398,44 @@ const PaymentPortal = () => {
 
           {/* Premium Store - WAGUS Payment */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">🐕 WAGUS Premium Store</h2>
-                  <p className="text-sm text-gray-600">Unlock exclusive features, themes, and tools with WAGUS tokens</p>
-                  <div className="mt-3 flex items-center space-x-4">
-                    <div className="flex items-center space-x-2 bg-orange-50 px-3 py-2 rounded-lg">
-                      <Wallet className="w-4 h-4 text-orange-600" />
-                      <span className="text-sm font-medium text-orange-600">{wagusBalance.toFixed(0)} WAGUS</span>
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900">🐕 WAGUS Premium Store</h2>
+                  <p className="text-xs md:text-sm text-gray-600">Unlock exclusive features, themes, and tools with WAGUS tokens</p>
+                  <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 md:gap-4">
+                    <div className="flex items-center space-x-2 bg-orange-50 px-2 md:px-3 py-1 md:py-2 rounded-lg">
+                      <Wallet className="w-3 h-3 md:w-4 md:h-4 text-orange-600" />
+                      <span className="text-xs md:text-sm font-medium text-orange-600">{wagusBalance.toFixed(0)} WAGUS</span>
                     </div>
-                    <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-600">Utility Token</span>
+                    <div className="flex items-center space-x-2 bg-green-50 px-2 md:px-3 py-1 md:py-2 rounded-lg">
+                      <TrendingUp className="w-3 h-3 md:w-4 md:h-4 text-green-600" />
+                      <span className="text-xs md:text-sm font-medium text-green-600">Utility Token</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl mb-2">🛍️</div>
+                <div className="text-center md:text-right flex-shrink-0">
+                  <div className="text-xl md:text-2xl mb-1 md:mb-2">🛍️</div>
                   <p className="text-xs text-gray-500">{premiumFeatures.length} Premium Items</p>
                 </div>
               </div>
             </div>
             
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {/* Featured Items */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">✨ Featured Items</h3>
+              <div className="mb-4 md:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 md:mb-4 space-y-2 sm:space-y-0">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">✨ Featured Items</h3>
                   <button
                     onClick={() => setShowAllFeatures(!showAllFeatures)}
-                    className="flex items-center space-x-2 text-orange-600 hover:text-orange-700 font-medium text-sm"
+                    className="flex items-center justify-center sm:justify-start space-x-2 text-orange-600 hover:text-orange-700 font-medium text-xs md:text-sm"
                   >
                     <span>{showAllFeatures ? 'Show Less' : 'View All Items'}</span>
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {(showAllFeatures ? premiumFeatures : premiumFeatures.slice(0, 6)).map((feature) => {
                     const canPurchase = wagusBalance >= feature.wagusPrice
                     // Focus on utility, not USD value
@@ -1445,7 +1445,7 @@ const PaymentPortal = () => {
                     return (
                       <div
                         key={feature.id}
-                        className={`relative border rounded-xl p-6 transition-all hover:shadow-lg hover:scale-105 ${
+                        className={`relative border rounded-lg md:rounded-xl p-4 md:p-6 transition-all hover:shadow-lg hover:scale-105 ${
                           isOwned 
                             ? 'border-green-300 bg-gradient-to-br from-green-50 to-green-100' 
                             : isFeatured
@@ -1454,30 +1454,30 @@ const PaymentPortal = () => {
                         }`}
                       >
                         {isFeatured && !isOwned && (
-                          <div className="absolute -top-2 -right-2">
-                            <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                          <div className="absolute -top-1 -right-1 md:-top-2 md:-right-2">
+                            <div className="bg-orange-500 text-white text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded-full font-bold">
                               HOT
                             </div>
                           </div>
                         )}
                         
                         {isOwned && (
-                          <div className="absolute -top-2 -right-2">
-                            <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                          <div className="absolute -top-1 -right-1 md:-top-2 md:-right-2">
+                            <div className="bg-green-500 text-white text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded-full font-bold">
                               OWNED
                             </div>
                           </div>
                         )}
                         
                         <div className="text-center">
-                          <div className="text-4xl mb-3">{feature.icon}</div>
-                          <h4 className="text-lg font-bold text-gray-900 mb-2">{feature.name}</h4>
-                          <p className="text-sm text-gray-600 mb-4 min-h-[40px]">{feature.description}</p>
+                          <div className="text-2xl md:text-4xl mb-2 md:mb-3">{feature.icon}</div>
+                          <h4 className="text-sm md:text-lg font-bold text-gray-900 mb-1 md:mb-2 line-clamp-2">{feature.name}</h4>
+                          <p className="text-xs md:text-sm text-gray-600 mb-3 md:mb-4 min-h-[32px] md:min-h-[40px] line-clamp-3">{feature.description}</p>
                           
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-center space-x-2">
-                              <span className="text-xl font-bold text-orange-600">{feature.wagusPrice.toLocaleString()}</span>
-                              <span className="text-sm text-gray-600 font-medium">WAGUS</span>
+                          <div className="space-y-2 md:space-y-3">
+                            <div className="flex items-center justify-center space-x-1 md:space-x-2">
+                              <span className="text-lg md:text-xl font-bold text-orange-600">{feature.wagusPrice.toLocaleString()}</span>
+                              <span className="text-xs md:text-sm text-gray-600 font-medium">WAGUS</span>
                             </div>
                             <div className="text-xs text-gray-500">
                               Premium Feature
@@ -1494,7 +1494,7 @@ const PaymentPortal = () => {
                           <button
                             onClick={() => purchasePremiumFeature(feature)}
                             disabled={!canPurchase || isLoading || isOwned}
-                            className={`mt-4 w-full py-3 px-4 rounded-lg font-bold transition-all ${
+                            className={`mt-3 md:mt-4 w-full py-2 md:py-3 px-3 md:px-4 rounded-lg font-bold transition-all text-xs md:text-sm ${
                               isOwned
                                 ? 'bg-green-600 text-white cursor-default'
                                 : canPurchase && !isLoading
@@ -1520,34 +1520,34 @@ const PaymentPortal = () => {
               
               {/* Get WAGUS Section */}
               {wagusBalance < 1000 && (
-                <div className="mt-6 p-6 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl">
-                  <div className="flex items-start space-x-4">
-                    <div className="text-4xl">🐕</div>
-                    <div className="flex-1">
-                      <h4 className="text-lg font-bold text-orange-800 mb-2">Need More WAGUS?</h4>
-                      <p className="text-sm text-orange-700 mb-4">
+                <div className="mt-4 md:mt-6 p-4 md:p-6 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg md:rounded-xl">
+                  <div className="flex items-start space-x-3 md:space-x-4">
+                    <div className="text-2xl md:text-4xl flex-shrink-0">🐕</div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-base md:text-lg font-bold text-orange-800 mb-2">Need More WAGUS?</h4>
+                      <p className="text-xs md:text-sm text-orange-700 mb-3 md:mb-4">
                         Get WAGUS tokens to unlock premium features and power the WAGUS economy!
                       </p>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                         <a 
                           href="https://swap.wagus.app" 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-medium text-sm transition-colors"
+                          className="inline-flex items-center justify-center space-x-2 bg-orange-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-700 font-medium text-xs md:text-sm transition-colors"
                         >
                           <span>🔄</span>
                           <span>Swap for WAGUS</span>
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
                         </a>
                         <a 
                           href="https://wagus.app" 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium text-sm transition-colors"
+                          className="inline-flex items-center justify-center space-x-2 bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-purple-700 font-medium text-xs md:text-sm transition-colors"
                         >
                           <span>📚</span>
                           <span>Learn More</span>
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
                         </a>
                       </div>
                     </div>
@@ -1559,24 +1559,24 @@ const PaymentPortal = () => {
 
           {/* Token Balances */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Token Balances</h2>
-                <div className="flex items-center space-x-2">
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">Token Balances</h2>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <button 
                     onClick={fetchTokenPrices}
                     disabled={isPriceLoading}
-                    className="flex items-center text-sm text-gray-600 hover:text-gray-700 disabled:opacity-50"
+                    className="flex items-center justify-center text-xs md:text-sm text-gray-600 hover:text-gray-700 disabled:opacity-50 px-2 py-1"
                   >
-                    <TrendingUp className={`w-4 h-4 mr-2 ${isPriceLoading ? 'animate-spin' : ''}`} />
+                    <TrendingUp className={`w-3 h-3 md:w-4 md:h-4 mr-2 ${isPriceLoading ? 'animate-spin' : ''}`} />
                     {isPriceLoading ? 'Updating Prices...' : 'Update Prices'}
                   </button>
                   <button 
                     onClick={fetchBalances}
                     disabled={isLoading}
-                    className="flex items-center px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-sm"
+                    className="flex items-center justify-center px-2 md:px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-xs md:text-sm"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                     {isLoading ? 'Refreshing...' : 'Refresh Balances'}
                   </button>
                 </div>
@@ -1584,19 +1584,19 @@ const PaymentPortal = () => {
             </div>
             <div className="divide-y divide-gray-200">
               {tokens.map((token) => (
-                <div key={token.symbol} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={token.symbol} className="p-4 md:p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-2xl">{token.logo}</div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{token.name}</h3>
-                        <p className="text-sm text-gray-600">{token.symbol}</p>
+                    <div className="flex items-center space-x-3 md:space-x-4 min-w-0 flex-1">
+                      <div className="text-xl md:text-2xl flex-shrink-0">{token.logo}</div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-gray-900 text-sm md:text-base truncate">{token.name}</h3>
+                        <p className="text-xs md:text-sm text-gray-600">{token.symbol}</p>
                         {token.symbol === 'WAGUS' && (
                           <p className="text-xs text-orange-600">Used for premium commands</p>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0 ml-2">
                       <p className="font-medium text-gray-900">
                         {token.balance.toFixed(token.symbol === 'SOL' ? 4 : 2)} {token.symbol}
                       </p>

@@ -407,18 +407,15 @@ export async function loadAgentContent(agentId: string): Promise<string> {
   return await simulateMarkdownContent(agentId, fileInfo.category)
 }
 
-// Load actual markdown content from file system
+// Load actual markdown content from public assets
 export async function loadActualMarkdownContent(agentId: string): Promise<string> {
   const fileInfo = AGENT_FILE_MAPPING[agentId as keyof typeof AGENT_FILE_MAPPING]
   if (!fileInfo) {
     throw new Error(`Agent ${agentId} not found in file mapping`)
   }
   
-  const filePath = `c:/Users/Mike/Documents/2025/apps/wagus-agents/agents_md/${fileInfo.file}`
-  
   try {
-    // In a browser environment, we need to use fetch to load files
-    // This assumes the files are served statically
+    // Load files from public assets directory
     const response = await fetch(`/agents_md/${fileInfo.file}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch ${fileInfo.file}: ${response.statusText}`)

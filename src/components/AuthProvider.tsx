@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import wagusLogo from '../assets/wagus_logo.png'
 
 interface User {
   publicKey: string
@@ -141,13 +142,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="text-center">
           <div className="w-24 h-24 mx-auto mb-6">
-            <svg viewBox="0 0 100 100" className="w-full h-full text-white">
-              <path d="M20 20 L80 20 L70 80 L30 80 Z" fill="currentColor" />
-              <path d="M35 35 L45 35 L40 65 L30 65 Z" fill="#1a1a1a" />
-              <path d="M55 35 L65 35 L70 65 L60 65 Z" fill="#1a1a1a" />
-              <path d="M45 45 L55 45 L50 60 L45 60 Z" fill="#1a1a1a" />
-            </svg>
-          </div>
+              <img 
+                src={wagusLogo} 
+                alt="WAGUS Logo" 
+                className="w-full h-full object-contain rounded-xl shadow-2xl" 
+                style={{ filter: 'drop-shadow(0 0 16px rgba(59, 130, 246, 0.4))' }}
+              />
+            </div>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
           <p className="mt-4 text-gray-300">Loading WAGUS Agents...</p>
         </div>
@@ -161,12 +162,12 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         <div className="max-w-md w-full space-y-8 p-8">
           <div className="text-center">
             <div className="w-24 h-24 mx-auto mb-6">
-              <svg viewBox="0 0 100 100" className="w-full h-full text-white">
-                <path d="M20 20 L80 20 L70 80 L30 80 Z" fill="currentColor" />
-                <path d="M35 35 L45 35 L40 65 L30 65 Z" fill="#1a1a1a" />
-                <path d="M55 35 L65 35 L70 65 L60 65 Z" fill="#1a1a1a" />
-                <path d="M45 45 L55 45 L50 60 L45 60 Z" fill="#1a1a1a" />
-              </svg>
+              <img 
+                src={wagusLogo} 
+                alt="WAGUS Logo" 
+                className="w-full h-full object-contain rounded-xl shadow-2xl" 
+                style={{ filter: 'drop-shadow(0 0 16px rgba(59, 130, 246, 0.4))' }}
+              />
             </div>
             <h2 className="text-3xl font-bold text-white">Welcome to WAGUS Agents</h2>
             <p className="mt-2 text-gray-300">Connect your Phantom wallet to get started</p>
