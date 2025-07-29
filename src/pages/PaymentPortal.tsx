@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useWallet, useConnection } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { Connection } from '@solana/web3.js'
 import { 
   PublicKey, 
   LAMPORTS_PER_SOL, 
@@ -31,7 +31,7 @@ import {
   DollarSign
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '../components/AuthProvider'
+import { useAuth } from '../components/PrivyAuthProvider'
 
 interface Token {
   symbol: string
@@ -74,9 +74,34 @@ interface PremiumFeature {
 }
 
 const PaymentPortal = () => {
-  const { publicKey, connected, sendTransaction } = useWallet()
-  const { connection } = useConnection()
-  const { credits, updateCredits } = useAuth()
+  const { authenticated } = usePrivy()
+  const { wallets } = useWallets()
+  const { credits, setCredits, updateCredits, publicKey, connected } = useAuth()
+  
+  // Create connection to Solana
+  const connection = useMemo(() => {
+    const rpcUrl = import.meta.env.VITE_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com'
+    return new Connection(rpcUrl, 'confirmed')
+  }, [])
+  
+  // Get the primary Solana wallet from Privy
+  const solanaWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
+  
+  // Implement sendTransaction for Privy wallets
+  const sendTransaction = async (transaction: SolanaTransaction, connection: Connection, options?: ConfirmOptions) => {
+    if (!solanaWallet || !publicKey) {
+      throw new Error('No Solana wallet connected')
+    }
+    
+    try {
+      // For now, we'll use a simplified approach
+      // In a full implementation, you'd use Privy's transaction signing methods
+      throw new Error('Transaction signing not yet implemented for Privy wallets')
+    } catch (error) {
+      console.error('Transaction failed:', error)
+      throw error
+    }
+  }
   const [tokens, setTokens] = useState<Token[]>([])
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -514,7 +539,7 @@ const PaymentPortal = () => {
       
       // Fetch SOL balance
       console.log('Fetching SOL balance...')
-      const solBalance = await connection.getBalance(publicKey)
+      const solBalance = await connection.getBalance(new PublicKey(publicKey))
       console.log('SOL balance:', solBalance / LAMPORTS_PER_SOL)
       
       // Fetch real WAGUS token balance from blockchain
@@ -523,7 +548,7 @@ const PaymentPortal = () => {
         console.log('Fetching WAGUS balance...')
         const wagusTokenAccount = await getAssociatedTokenAddress(
           new PublicKey(WAGUS_MINT),
-          publicKey
+          new PublicKey(publicKey)
         )
         console.log('WAGUS token account:', wagusTokenAccount.toString())
         
@@ -553,7 +578,7 @@ const PaymentPortal = () => {
         console.log('Fetching USDC balance...')
         const usdcTokenAccount = await getAssociatedTokenAddress(
           new PublicKey(USDC_MINT),
-          publicKey
+          new PublicKey(publicKey)
         )
         console.log('USDC token account:', usdcTokenAccount.toString())
         
@@ -638,7 +663,7 @@ const PaymentPortal = () => {
       // Create USDC token transfer transaction
       const usdcTokenAccount = await getAssociatedTokenAddress(
         new PublicKey(USDC_MINT),
-        publicKey
+        new PublicKey(publicKey)
       )
       
       const treasuryUsdcAccount = await getAssociatedTokenAddress(
@@ -650,7 +675,7 @@ const PaymentPortal = () => {
         createTransferInstruction(
           usdcTokenAccount,
           treasuryUsdcAccount,
-          publicKey,
+          new PublicKey(publicKey),
           creditPackage.usdValue * Math.pow(10, 6), // USDC has 6 decimals
           [],
           TOKEN_PROGRAM_ID
@@ -660,7 +685,7 @@ const PaymentPortal = () => {
       // Set recent blockhash and fee payer
       const { blockhash } = await connection.getLatestBlockhash()
       transaction.recentBlockhash = blockhash
-      transaction.feePayer = publicKey
+      transaction.feePayer = new PublicKey(publicKey)
 
       const signature = await sendTransaction(transaction, connection, {
         skipPreflight: false,
@@ -763,7 +788,7 @@ const PaymentPortal = () => {
       // Create SOL transfer transaction
       const transaction = new SolanaTransaction().add(
         SystemProgram.transfer({
-          fromPubkey: publicKey,
+          fromPubkey: new PublicKey(publicKey),
           toPubkey: new PublicKey(WAGUS_TREASURY),
           lamports: Math.floor(solAmount * LAMPORTS_PER_SOL)
         })
@@ -772,7 +797,7 @@ const PaymentPortal = () => {
       // Set recent blockhash and fee payer
       const { blockhash } = await connection.getLatestBlockhash()
       transaction.recentBlockhash = blockhash
-      transaction.feePayer = publicKey
+      transaction.feePayer = new PublicKey(publicKey)
 
       const signature = await sendTransaction(transaction, connection, {
         skipPreflight: false,
@@ -866,9 +891,10 @@ const PaymentPortal = () => {
 
     try {
       // Create WAGUS token transfer transaction
+      const publicKeyObj = new PublicKey(publicKey)
       const wagusTokenAccount = await getAssociatedTokenAddress(
         new PublicKey(WAGUS_MINT),
-        publicKey
+        publicKeyObj
       )
       
       const treasuryTokenAccount = await getAssociatedTokenAddress(
@@ -880,7 +906,7 @@ const PaymentPortal = () => {
         createTransferInstruction(
           wagusTokenAccount,
           treasuryTokenAccount,
-          publicKey,
+          publicKeyObj,
           feature.wagusPrice * Math.pow(10, 6), // WAGUS has 6 decimals
           [],
           TOKEN_PROGRAM_ID
@@ -890,7 +916,7 @@ const PaymentPortal = () => {
       // Set recent blockhash and fee payer
       const { blockhash } = await connection.getLatestBlockhash()
       transaction.recentBlockhash = blockhash
-      transaction.feePayer = publicKey
+      transaction.feePayer = new PublicKey(publicKey)
 
       const signature = await sendTransaction(transaction, connection, {
         skipPreflight: false,
@@ -976,9 +1002,10 @@ const PaymentPortal = () => {
 
     try {
       // Create WAGUS token transfer transaction for command payment
+      const publicKeyObj = new PublicKey(publicKey)
       const wagusTokenAccount = await getAssociatedTokenAddress(
         new PublicKey(WAGUS_MINT),
-        publicKey
+        publicKeyObj
       )
       
       const treasuryTokenAccount = await getAssociatedTokenAddress(
@@ -990,7 +1017,7 @@ const PaymentPortal = () => {
         createTransferInstruction(
           wagusTokenAccount,
           treasuryTokenAccount,
-          publicKey,
+          publicKeyObj,
           commandCost * Math.pow(10, 6), // WAGUS has 6 decimals
           [],
           TOKEN_PROGRAM_ID
@@ -999,7 +1026,7 @@ const PaymentPortal = () => {
 
       const { blockhash } = await connection.getLatestBlockhash()
       transaction.recentBlockhash = blockhash
-      transaction.feePayer = publicKey
+      transaction.feePayer = publicKeyObj
 
       const signature = await sendTransaction(transaction, connection)
       
@@ -1074,20 +1101,22 @@ const PaymentPortal = () => {
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading || isPriceLoading ? 'animate-spin' : ''}`} />
             {isLoading || isPriceLoading ? 'Refreshing...' : 'Refresh All'}
           </button>
-          <WalletMultiButton className="!bg-orange-600 hover:!bg-orange-700" />
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Refresh Connection
+          </button>
         </div>
       </div>
 
       {!connected ? (
         <div className="text-center py-12">
           <Wallet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Connect Your Wallet</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Wallet Connection Required</h3>
           <p className="text-gray-600 mb-6">
-            Connect your Phantom wallet to purchase WAGUS credits and unlock premium commands
+            Please connect a Solana wallet through the authentication system to access payment features
           </p>
-          <div className="mb-6">
-            <WalletMultiButton className="!bg-orange-600 hover:!bg-orange-700" />
-          </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
             <div className="flex items-start space-x-2">
               <div className="w-5 h-5 text-blue-600 mt-0.5">
@@ -1095,7 +1124,7 @@ const PaymentPortal = () => {
               </div>
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Network: Solana Mainnet</p>
-                <p>Make sure your wallet is connected to Solana Mainnet to see your real token balances.</p>
+                <p>Connect a Solana wallet to see your token balances and make payments.</p>
               </div>
             </div>
           </div>

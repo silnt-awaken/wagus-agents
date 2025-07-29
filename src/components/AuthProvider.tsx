@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import MobileWalletButton from './MobileWalletButton'
 import wagusLogo from '../assets/wagus_logo.png'
 import AntiSpamService from '../utils/antiSpam'
 
@@ -213,7 +214,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           </div>
           <div className="space-y-6">
             <div className="flex justify-center">
-              <WalletMultiButton className="!bg-orange-600 hover:!bg-orange-700 !rounded-lg !font-medium !transition-colors" />
+              <MobileWalletButton className="!bg-orange-600 hover:!bg-orange-700 !rounded-lg !font-medium !transition-colors" />
             </div>
             <div className="bg-gray-800 rounded-lg p-4 space-y-3">
               <h3 className="text-white font-medium">What you get:</h3>

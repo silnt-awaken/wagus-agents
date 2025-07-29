@@ -270,5 +270,21 @@ class AntiSpamService {
   }
 }
 
+// Convenience function for validation
+export const validateAntiSpam = async (walletAddress: string): Promise<{ isValid: boolean; reason?: string }> => {
+  const antiSpamService = AntiSpamService.getInstance();
+  const result = await antiSpamService.canRegisterNewUser(walletAddress);
+  return {
+    isValid: result.allowed,
+    reason: result.reason
+  };
+};
+
+// Convenience function for registration
+export const registerUser = async (walletAddress: string): Promise<void> => {
+  const antiSpamService = AntiSpamService.getInstance();
+  await antiSpamService.registerNewUser(walletAddress);
+};
+
 export default AntiSpamService;
 export type { DeviceFingerprint, SpamTrackingData };

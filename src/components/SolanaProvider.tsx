@@ -8,6 +8,7 @@ import {
   TorusWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
 import { clusterApiUrl } from '@solana/web3.js'
+import { isMobileDevice, getMobileWalletConfig } from '../utils/mobileWallet'
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css'
@@ -37,11 +38,23 @@ const SolanaProvider = ({ children }: SolanaProviderProps) => {
   }, [network])
 
   const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
-      new TorusWalletAdapter(),
-    ],
+    () => {
+      const mobile = isMobileDevice()
+      const mobileConfig = getMobileWalletConfig()
+      
+      return [
+        new PhantomWalletAdapter({
+          // Apply mobile-specific configuration
+          ...(mobile && mobileConfig)
+        }),
+        new SolflareWalletAdapter({ 
+          network,
+          // Apply mobile config to Solflare as well
+          ...(mobile && mobileConfig)
+        }),
+        new TorusWalletAdapter(),
+      ]
+    },
     [network]
   )
 

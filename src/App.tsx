@@ -9,8 +9,9 @@ import Settings from './pages/Settings'
 import PromptOptimizer from './pages/PromptOptimizer'
 import AgentShop from './pages/AgentShop'
 import Layout from './components/Layout'
-import AuthProvider from './components/AuthProvider'
-import SolanaProvider from './components/SolanaProvider'
+import PrivyProvider from './components/PrivyProvider'
+import PrivyAuthProvider from './components/PrivyAuthProvider'
+import PrivyDebug from './components/PrivyDebug'
 import { useTheme } from './hooks/useTheme'
 
 function AppContent() {
@@ -38,13 +39,14 @@ function AppContent() {
 
 function App() {
   return (
-    <SolanaProvider>
-      <AuthProvider>
+    <PrivyProvider>
+      <PrivyAuthProvider>
         <Router>
           <AppContent />
         </Router>
-      </AuthProvider>
-    </SolanaProvider>
+        <PrivyDebug />
+      </PrivyAuthProvider>
+    </PrivyProvider>
   )
 }
 

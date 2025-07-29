@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import type { WagusTheme } from '../hooks/useTheme'
 import { toast } from 'sonner'
+import PrivyDebug from '../components/PrivyDebug'
 import { 
   User, 
   Bell, 
@@ -29,13 +30,13 @@ interface SettingsSection {
 }
 
 const Settings = () => {
-  const { user, signOut, signMessage } = useAuth()
+  const { user, signOut, publicKey } = useAuth()
   const { wagusTheme, setWagusTheme } = useTheme()
   const [activeSection, setActiveSection] = useState('profile')
   const [showApiKey, setShowApiKey] = useState(false)
   const [settings, setSettings] = useState({
     profile: {
-      walletAddress: user?.publicKey || '',
+      walletAddress: publicKey || '',
       bio: '',
       timezone: 'UTC-8',
       language: 'en'
@@ -143,7 +144,7 @@ const Settings = () => {
           <div>
             <h3 className="text-lg font-medium text-gray-900">WAGUS User</h3>
             <p className="text-gray-600 font-mono text-sm">
-              {user?.publicKey ? `${user.publicKey.slice(0, 8)}...${user.publicKey.slice(-8)}` : 'Not connected'}
+              {publicKey ? `${publicKey.slice(0, 8)}...${publicKey.slice(-8)}` : 'Not connected'}
             </p>
             <button className="text-sm text-orange-600 hover:text-orange-700 mt-1">
               Change Avatar
@@ -151,21 +152,6 @@ const Settings = () => {
           </div>
         </div>
         <div className="flex space-x-3">
-          <button
-            onClick={async () => {
-              const message = `Sign this message to verify your identity: ${Date.now()}`
-              const signature = await signMessage(message)
-              if (signature) {
-                toast.success('Message signed successfully!')
-                console.log('Signature:', signature)
-              } else {
-                toast.error('Failed to sign message')
-              }
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Test Sign Message
-          </button>
           <button
             onClick={signOut}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -641,6 +627,11 @@ const Settings = () => {
                   Save Changes
                 </button>
               )}
+            </div>
+            
+            {/* Privy Debug Component */}
+            <div className="mb-6">
+              <PrivyDebug />
             </div>
             
             {renderContent()}
