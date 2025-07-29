@@ -11,7 +11,8 @@ import {
   X,
   User,
   LogOut,
-  Zap
+  Zap,
+  ShoppingCart
 } from 'lucide-react'
 import { useAuth } from '../components/AuthProvider'
 
@@ -31,6 +32,7 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Commands', href: '/commands', icon: Terminal },
     { name: 'Repository', href: '/repository', icon: GitBranch },
     { name: 'Prompt Optimizer', href: '/prompt-optimizer', icon: Zap },
+    { name: 'Agent Shop', href: '/agent-shop', icon: ShoppingCart },
     { name: 'Payments', href: '/payments', icon: CreditCard },
     { name: 'Settings', href: '/settings', icon: SettingsIcon },
   ]

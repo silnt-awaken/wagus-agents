@@ -7,6 +7,7 @@ import RepositoryViewer from './pages/RepositoryViewer'
 import PaymentPortal from './pages/PaymentPortal'
 import Settings from './pages/Settings'
 import PromptOptimizer from './pages/PromptOptimizer'
+import AgentShop from './pages/AgentShop'
 import Layout from './components/Layout'
 import AuthProvider from './components/AuthProvider'
 import SolanaProvider from './components/SolanaProvider'
@@ -26,6 +27,7 @@ function AppContent() {
           <Route path="/repository" element={<RepositoryViewer />} />
           <Route path="/payments" element={<PaymentPortal />} />
           <Route path="/prompt-optimizer" element={<PromptOptimizer />} />
+          <Route path="/agent-shop" element={<AgentShop />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
