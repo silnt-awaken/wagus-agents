@@ -3,6 +3,7 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
 import { toast } from 'sonner'
 import { useAuth } from './useAuth'
+import { useWallets } from '@privy-io/react-auth'
 
 interface TokenBalance {
   sol: number
@@ -11,7 +12,8 @@ interface TokenBalance {
 }
 
 export const useBalances = () => {
-  const { publicKey, connected } = useAuth()
+  const { connected } = useAuth()
+  const { wallets } = useWallets()
   const [balances, setBalances] = useState<TokenBalance>({
     sol: 0,
     usdc: 0,
@@ -29,21 +31,58 @@ export const useBalances = () => {
     'confirmed'
   )
 
+  // Get the Solana wallet from Privy
+  const solanaWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
+
   const fetchBalances = useCallback(async () => {
-    if (!publicKey || !connected) {
+    if (!connected || !solanaWallet) {
       console.log('No wallet connected for balance fetching')
       return
     }
 
     setIsLoading(true)
-    console.log('Fetching balances for wallet:', publicKey)
+    console.log('Fetching balances using Privy wallet:', solanaWallet.address)
+    console.log('Using RPC endpoint:', import.meta.env.VITE_HELIUS_RPC || 'https://api.mainnet-beta.solana.com')
 
     try {
-      const publicKeyObj = new PublicKey(publicKey)
+      // Get wallet address directly from Privy
+      const walletAddress = solanaWallet.address
+      if (!walletAddress) {
+        throw new Error('Wallet address not available')
+      }
+
+      console.log('Raw wallet address from Privy:', walletAddress)
+      console.log('Wallet address type:', typeof walletAddress)
+      console.log('Wallet address length:', walletAddress.length)
+      
+      // Validate and clean the wallet address
+      const cleanAddress = walletAddress.trim()
+      
+      // Check if it's a valid Base58 string (Solana addresses are 32-44 characters)
+      if (cleanAddress.length < 32 || cleanAddress.length > 44) {
+        throw new Error(`Invalid wallet address length: ${cleanAddress.length}. Expected 32-44 characters.`)
+      }
+      
+      // Check for valid Base58 characters
+      const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/
+      if (!base58Regex.test(cleanAddress)) {
+        console.error('Invalid characters in wallet address:', cleanAddress)
+        throw new Error('Wallet address contains invalid characters')
+      }
+      
+      console.log('Validated wallet address:', cleanAddress)
+      
+      // Create PublicKey object for Solana operations
+      const publicKeyObj = new PublicKey(cleanAddress)
+      
+      // Test RPC connection first
+      const slot = await connection.getSlot()
+      console.log('RPC connection successful, current slot:', slot)
       
       // Fetch SOL balance
       const solBalance = await connection.getBalance(publicKeyObj)
       const solAmount = solBalance / LAMPORTS_PER_SOL
+      console.log('SOL balance fetched:', solAmount)
 
       // Fetch WAGUS balance
       let wagusBalance = 0
@@ -90,18 +129,36 @@ export const useBalances = () => {
       console.log('Balances updated:', { sol: solAmount, usdc: usdcBalance, wagus: wagusBalance })
     } catch (error) {
       console.error('Error fetching balances:', error)
-      toast.error('Failed to fetch wallet balances')
+      
+      // More specific error handling
+      if (error instanceof Error) {
+        if (error.message.includes('429')) {
+          toast.error('Rate limited - please try again in a moment')
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          toast.error('Network error - check your internet connection')
+        } else if (error.message.includes('Invalid public key') || error.message.includes('Non-base58 character')) {
+          toast.error('Invalid wallet address format')
+        } else if (error.message.includes('Wallet provider not available')) {
+          toast.error('Wallet provider not ready - please try reconnecting')
+        } else if (error.message.includes('Wallet address not available')) {
+          toast.error('Wallet address not available - please reconnect')
+        } else {
+          toast.error(`Failed to fetch wallet balances: ${error.message}`)
+        }
+      } else {
+        toast.error('Failed to fetch wallet balances')
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [publicKey, connected, connection])
+  }, [connected, solanaWallet, connection])
 
   // Fetch balances when wallet connects
   useEffect(() => {
-    if (connected && publicKey) {
+    if (connected && solanaWallet) {
       fetchBalances()
     }
-  }, [connected, publicKey, fetchBalances])
+  }, [connected, solanaWallet, fetchBalances])
 
   return {
     balances,
