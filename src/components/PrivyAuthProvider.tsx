@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { useSolanaWallets } from '@privy-io/react-auth/solana'
 import { toast } from 'sonner'
 
 interface User {
@@ -49,19 +50,116 @@ interface AuthProviderProps {
 export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { ready, authenticated, user: privyUser, login, logout } = usePrivy()
   const { wallets } = useWallets()
+  const { createWallet, wallets: solanaWallets } = useSolanaWallets()
   
   const [user, setUser] = useState<User | null>(null)
   const [credits, setCredits] = useState(0)
   const [openAiKey, setOpenAiKey] = useState('')
   const [connecting, setConnecting] = useState(false)
+  const [walletCreationAttempted, setWalletCreationAttempted] = useState(false)
+  
+  // Debug: Log both wallet sources
+  useEffect(() => {
+    console.log('=== WALLET COMPARISON ===')
+    console.log('useWallets() returned:', wallets.length, 'wallets')
+    console.log('useSolanaWallets() returned:', solanaWallets?.length || 0, 'wallets')
+    if (solanaWallets && solanaWallets.length > 0) {
+      console.log('Solana wallets from useSolanaWallets():', solanaWallets)
+    }
+    console.log('========================')
+  }, [wallets, solanaWallets])
 
-  // Get the primary Solana wallet
-  const solanaWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
-  const publicKey = solanaWallet?.address || user?.wallet?.address || null
+  // Debug all wallets to see what Privy is providing
+  useEffect(() => {
+    console.log('=== ALL WALLETS FROM PRIVY ===')
+    console.log('Wallet count:', wallets.length)
+    wallets.forEach((wallet, index) => {
+      console.log(`Wallet ${index}:`, {
+        address: wallet.address,
+        connectorType: wallet.connectorType,
+        walletClientType: wallet.walletClientType,
+        chainId: (wallet as any).chainId,
+        chainType: (wallet as any).chainType,
+        isEmbedded: wallet.connectorType === 'embedded',
+        addressFormat: wallet.address?.startsWith('0x') ? 'EVM' : 'Solana',
+        allProperties: wallet
+      })
+    })
+    console.log('==============================')
+  }, [wallets])
+
+  // Try multiple methods to find Solana wallet
+  const allWallets = [...wallets, ...(solanaWallets || [])]
+  const solanaWallet = allWallets.find(wallet => {
+    // Only select Solana wallets (44 chars, no 0x prefix)
+    return wallet.address?.length === 44 && !wallet.address?.startsWith('0x')
+  })
+  
+  // Also check if privyUser has a Solana address directly
+  const privySolanaAddress = privyUser?.wallet?.address && 
+    privyUser.wallet.address.length === 44 && 
+    !privyUser.wallet.address.startsWith('0x') 
+    ? privyUser.wallet.address 
+    : null
+  
+  const publicKey = solanaWallet?.address || privySolanaAddress || null
   const connected = authenticated && !!publicKey
+  
+  // Debug wallet info - only log when wallet status changes
+  useEffect(() => {
+    if (wallets.length > 0 && !walletCreationAttempted) {
+      console.log('Wallet status:', {
+        walletCount: wallets.length,
+        hasSolanaWallet: !!solanaWallet,
+        hasEthereumWallet: wallets.some(w => w.address?.startsWith('0x')),
+        selectedWallet: solanaWallet ? 'Solana' : 'None'
+      })
+    }
+  }, [wallets.length, solanaWallet, walletCreationAttempted])
+
+  // Wait for Solana wallet to appear after authentication
+  useEffect(() => {
+    if (!ready || !authenticated) return
+    
+    let checkCount = 0
+    const maxChecks = 10 // Check up to 10 times
+    
+    const checkForSolanaWallet = () => {
+      const hasSolanaWallet = allWallets.some(w => 
+        w.address?.length === 44 && !w.address?.startsWith('0x')
+      )
+      const hasEthereumWallet = allWallets.some(w => w.address?.startsWith('0x'))
+      
+      console.log(`Wallet check #${checkCount + 1}:`, {
+        authenticated,
+        walletCount: allWallets.length,
+        hasSolanaWallet,
+        hasEthereumWallet,
+        solanaWallet: solanaWallet?.address,
+        privySolanaAddress
+      })
+      
+      checkCount++
+      
+      // If we found a Solana wallet or reached max checks, stop
+      if (hasSolanaWallet || checkCount >= maxChecks) {
+        if (!hasSolanaWallet && checkCount >= maxChecks) {
+          console.error('❌ No Solana wallet found after', maxChecks, 'checks')
+          console.error('Make sure Solana is enabled in your Privy dashboard')
+        }
+        return
+      }
+      
+      // Check again in 1 second
+      setTimeout(checkForSolanaWallet, 1000)
+    }
+    
+    // Start checking after a small delay
+    setTimeout(checkForSolanaWallet, 500)
+  }, [ready, authenticated])
 
   useEffect(() => {
-    if (ready && authenticated && privyUser) {
+    if (ready && authenticated && privyUser && publicKey) {
       handleUserAuth()
     } else if (ready && !authenticated) {
       // Clear user data when not authenticated
@@ -75,6 +173,22 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
    }, [ready, authenticated, privyUser, publicKey])
 
   const handleUserAuth = async () => {
+    console.log('handleUserAuth called with:', {
+      privyUser,
+      publicKey,
+      wallets: wallets.length,
+      solanaWallet,
+      privyUserWallets: privyUser?.wallet,
+      privyUserLinkedAccounts: privyUser?.linkedAccounts
+    })
+    
+    // Check if privyUser has embedded wallets
+    if (privyUser) {
+      console.log('Privy user object:', privyUser)
+      console.log('Privy user wallet:', privyUser.wallet)
+      console.log('Privy user linked accounts:', privyUser.linkedAccounts)
+    }
+    
     if (!privyUser || !publicKey) return
 
     try {
@@ -128,6 +242,8 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
   }
 
   const signInWithPrivy = async () => {
+    console.log('signInWithPrivy called, ready:', ready)
+    
     if (!ready) {
       toast.error('Authentication not ready', {
         description: 'Please wait a moment and try again'
@@ -138,7 +254,9 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
     setConnecting(true)
     
     try {
+      console.log('Calling Privy login...')
       await login()
+      console.log('Privy login successful')
     } catch (error: any) {
       console.error('Authentication error:', error)
       

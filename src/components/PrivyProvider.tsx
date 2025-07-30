@@ -29,7 +29,7 @@ const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       logo: '/wagus_logo.png',
     },
     embeddedWallets: {
-      createOnLogin: 'users-without-wallets' as const,
+      createOnLogin: 'users-without-wallets' as const, // Let Privy create wallets based on dashboard settings
     },
     externalWallets: {
       solana: {
@@ -51,7 +51,7 @@ const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
         },
         rpcUrls: {
           default: {
-            http: [import.meta.env.VITE_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com'],
+            http: [import.meta.env.VITE_HELIUS_RPC || import.meta.env.VITE_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com'],
           },
         },
       },

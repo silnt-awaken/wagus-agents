@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { useSendTransaction, useSolanaWallets } from '@privy-io/react-auth/solana'
 import { Connection } from '@solana/web3.js'
 import { 
   PublicKey, 
@@ -32,6 +33,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '../components/PrivyAuthProvider'
+import ConnectionTest from '../components/ConnectionTest'
+import ManualWalletTest from '../components/ManualWalletTest'
 
 interface Token {
   symbol: string
@@ -76,11 +79,13 @@ interface PremiumFeature {
 const PaymentPortal = () => {
   const { authenticated } = usePrivy()
   const { wallets } = useWallets()
+  const { sendTransaction: privySendTransaction } = useSendTransaction()
+  const { createWallet: createSolanaWallet } = useSolanaWallets()
   const { credits, setCredits, updateCredits, publicKey, connected } = useAuth()
   
   // Create connection to Solana - ONLY use paid Helius RPC
   const connection = useMemo(() => {
-    const rpcUrl = import.meta.env.VITE_HELIUS_RPC
+    const rpcUrl = import.meta.env.VITE_HELIUS_RPC || import.meta.env.VITE_HELIUS_RPC_URL
     
     if (!rpcUrl) {
       console.error('VITE_HELIUS_RPC not configured! Please set your paid Helius RPC endpoint in .env')
@@ -91,24 +96,50 @@ const PaymentPortal = () => {
     return new Connection(rpcUrl, 'confirmed')
   }, [])
   
-  // Get the primary Solana wallet from Privy
-  const solanaWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
+  // Get the primary Solana wallet - check for Solana-compatible wallets
+  const solanaWallet = wallets.find(wallet => 
+    wallet.address?.length === 44 && !wallet.address?.startsWith('0x') // Solana addresses are 44 chars and don't start with 0x
+  )
   
-  // Implement sendTransaction for Privy wallets
-  const sendTransaction = async (transaction: SolanaTransaction, connection: Connection, options?: ConfirmOptions) => {
-    if (!solanaWallet || !publicKey) {
-      throw new Error('No Solana wallet connected')
+  // Implement sendTransaction wrapper for Privy wallets
+  const sendTransaction = useCallback(async (
+    transaction: SolanaTransaction, 
+    connection: Connection, 
+    options?: ConfirmOptions
+  ) => {
+    if (!publicKey) {
+      throw new Error('No wallet connected')
     }
     
     try {
-      // For now, we'll use a simplified approach
-      // In a full implementation, you'd use Privy's transaction signing methods
-      throw new Error('Transaction signing not yet implemented for Privy wallets')
+      console.log('Sending transaction with Privy...')
+      
+      // Use Privy's sendTransaction hook
+      const receipt = await privySendTransaction({
+        transaction,
+        connection,
+        uiOptions: {
+          showWalletUIs: true, // Show confirmation modal
+        },
+      })
+      
+      console.log('Transaction sent successfully:', receipt.signature)
+      return receipt.signature
     } catch (error) {
       console.error('Transaction failed:', error)
+      
+      if (error instanceof Error) {
+        if (error.message.includes('User rejected')) {
+          throw new Error('Transaction cancelled by user')
+        }
+        if (error.message.includes('insufficient')) {
+          throw new Error('Insufficient balance for transaction')
+        }
+      }
+      
       throw error
     }
-  }
+  }, [privySendTransaction, publicKey])
   const [tokens, setTokens] = useState<Token[]>([])
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -528,15 +559,40 @@ const PaymentPortal = () => {
     }
   }, [connected, publicKey])
 
+  // Debug function to check wallet and RPC status
+  const debugWalletConnection = () => {
+    console.log('=== Wallet Debug Info ===')
+    console.log('Authenticated:', authenticated)
+    console.log('Connected:', connected)
+    console.log('Public Key:', publicKey)
+    console.log('Wallets:', wallets)
+    console.log('Solana Wallet:', solanaWallet)
+    console.log('RPC Endpoint:', connection.rpcEndpoint)
+    console.log('Environment:', {
+      VITE_HELIUS_RPC: import.meta.env.VITE_HELIUS_RPC,
+      VITE_HELIUS_RPC_URL: import.meta.env.VITE_HELIUS_RPC_URL,
+      VITE_HELIUS_API_KEY: import.meta.env.VITE_HELIUS_API_KEY,
+      VITE_SOLANA_NETWORK: import.meta.env.VITE_SOLANA_NETWORK,
+      VITE_WAGUS_MINT: import.meta.env.VITE_WAGUS_MINT,
+      VITE_PRIVY_APP_ID: import.meta.env.VITE_PRIVY_APP_ID,
+      ACTUAL_RPC_BEING_USED: connection.rpcEndpoint
+    })
+    console.log('========================')
+  }
+
   const fetchBalances = async () => {
     if (!publicKey) {
       console.log('No public key available for balance fetching')
+      debugWalletConnection()
       return
     }
 
     setIsLoading(true)
-    console.log('Fetching balances for wallet:', publicKey.toString())
+    console.log('Raw publicKey value:', publicKey)
+    console.log('PublicKey type:', typeof publicKey)
     console.log('Using RPC endpoint:', connection.rpcEndpoint)
+    console.log('Wallet connected:', connected)
+    console.log('Authenticated:', authenticated)
     
     try {
       // Test connection first
@@ -544,10 +600,45 @@ const PaymentPortal = () => {
       const slot = await connection.getSlot()
       console.log('RPC connection successful, current slot:', slot)
       
+      // Validate and convert public key
+      let pubKeyObj: PublicKey
+      try {
+        // Handle different publicKey formats
+        if (!publicKey) {
+          throw new Error('Public key is null or undefined')
+        }
+        
+        // Check if it's already a PublicKey-like object
+        if (publicKey && typeof publicKey === 'object' && 'toBase58' in (publicKey as any)) {
+          pubKeyObj = publicKey as PublicKey
+        } 
+        // If it's a string
+        else if (typeof publicKey === 'string' && publicKey.length > 0) {
+          pubKeyObj = new PublicKey(publicKey)
+        } 
+        // If it's an object with toString method
+        else if (publicKey.toString && typeof publicKey.toString === 'function') {
+          const keyStr = publicKey.toString()
+          if (keyStr && keyStr.length > 0) {
+            pubKeyObj = new PublicKey(keyStr)
+          } else {
+            throw new Error('Public key toString() returned empty string')
+          }
+        } else {
+          throw new Error(`Unexpected public key type: ${typeof publicKey}`)
+        }
+        
+        console.log('PublicKey object created successfully:', pubKeyObj.toString())
+      } catch (error) {
+        console.error('Public key validation error:', error)
+        console.error('Raw publicKey that failed:', publicKey)
+        debugWalletConnection()
+        throw new Error('Invalid wallet address format')
+      }
+      
       // Fetch SOL balance
       console.log('Fetching SOL balance...')
-      // publicKey from Privy is a string, need to convert to PublicKey
-      const solBalance = await connection.getBalance(new PublicKey(publicKey))
+      const solBalance = await connection.getBalance(pubKeyObj)
       console.log('SOL balance:', solBalance / LAMPORTS_PER_SOL)
       
       // Fetch real WAGUS token balance from blockchain
@@ -556,7 +647,7 @@ const PaymentPortal = () => {
         console.log('Fetching WAGUS balance...')
         const wagusTokenAccount = await getAssociatedTokenAddress(
           new PublicKey(WAGUS_MINT),
-          new PublicKey(publicKey)
+          pubKeyObj
         )
         console.log('WAGUS token account:', wagusTokenAccount.toString())
         
@@ -586,7 +677,7 @@ const PaymentPortal = () => {
         console.log('Fetching USDC balance...')
         const usdcTokenAccount = await getAssociatedTokenAddress(
           new PublicKey(USDC_MINT),
-          new PublicKey(publicKey)
+          pubKeyObj
         )
         console.log('USDC token account:', usdcTokenAccount.toString())
         
@@ -630,14 +721,24 @@ const PaymentPortal = () => {
       // More specific error handling
       if (error instanceof Error) {
         if (error.message.includes('403') || error.message.includes('Access forbidden')) {
-          toast.error('RPC access denied. The free RPC endpoint may be rate limited. Please try again in a few minutes.')
+          toast.error('RPC access denied. Please check your Helius API key in .env file.')
+          console.error('RPC 403 error - check VITE_HELIUS_RPC_URL in .env')
         } else if (error.message.includes('429')) {
           toast.error('Rate limit exceeded. Please wait before trying again.')
+          console.error('RPC 429 error - rate limited')
+        } else if (error.message.includes('Invalid wallet address')) {
+          toast.error('Invalid wallet address format. Please reconnect your wallet.')
+          console.error('Invalid wallet address:', publicKey)
+        } else if (error.message.includes('Failed to fetch')) {
+          toast.error('Network error. Please check your internet connection and RPC endpoint.')
+          console.error('Network error - RPC endpoint may be down or incorrectly configured')
         } else {
           toast.error(`Failed to fetch balances: ${error.message}`)
+          console.error('Balance fetch error:', error)
         }
       } else {
         toast.error('Failed to fetch wallet balances. Please check your connection.')
+        console.error('Unknown error fetching balances:', error)
       }
     } finally {
       setIsLoading(false)
@@ -1117,6 +1218,12 @@ const PaymentPortal = () => {
           >
             Refresh Connection
           </button>
+          <button 
+            onClick={debugWalletConnection}
+            className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Debug
+          </button>
         </div>
       </div>
 
@@ -1127,6 +1234,56 @@ const PaymentPortal = () => {
           <p className="text-gray-600 mb-6">
             Please connect a Solana wallet through the authentication system to access payment features
           </p>
+          {/* Show loading message if authenticated but waiting for Solana wallet */}
+          {authenticated && !wallets.some(w => w.address?.length === 44 && !w.address?.startsWith('0x')) && wallets.length === 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-600">Waiting for wallet initialization...</p>
+              </div>
+              <p className="text-sm text-gray-500 mt-2 text-center">
+                Privy is setting up your wallets
+              </p>
+            </div>
+          )}
+          
+          {/* Show warning if we have Ethereum wallet instead of Solana */}
+          {authenticated && wallets.some(w => w.address?.startsWith('0x')) && !wallets.some(w => w.address?.length === 44 && !w.address?.startsWith('0x')) && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto mb-6">
+              <div className="flex items-start space-x-2">
+                <div className="w-5 h-5 text-red-600 mt-0.5">❌</div>
+                <div className="text-sm text-red-800">
+                  <p className="font-bold mb-2">Wallet Type Mismatch - Action Required!</p>
+                  <p className="mb-2">You have an Ethereum wallet ({wallets.find(w => w.address?.startsWith('0x'))?.address?.slice(0, 10)}...), but this app requires Solana.</p>
+                  <p className="font-semibold mb-1">Privy Limitation: Only ONE embedded wallet per user!</p>
+                  <p className="mt-3 font-semibold">Your Options:</p>
+                  <ol className="list-decimal ml-5 mt-1 space-y-1">
+                    <li>Install and connect an external Solana wallet (Phantom, Solflare, etc.)</li>
+                    <li>Or clear ALL browser data and start fresh with a Solana wallet</li>
+                  </ol>
+                  <div className="mt-4 space-y-2">
+                    <a 
+                      href="https://phantom.app/download"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full px-4 py-2 bg-purple-600 text-white text-center rounded-lg hover:bg-purple-700"
+                    >
+                      Get Phantom Wallet →
+                    </a>
+                    <a 
+                      href="https://solflare.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full px-4 py-2 bg-orange-600 text-white text-center rounded-lg hover:bg-orange-700"
+                    >
+                      Get Solflare Wallet →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
             <div className="flex items-start space-x-2">
               <div className="w-5 h-5 text-blue-600 mt-0.5">
@@ -1138,6 +1295,9 @@ const PaymentPortal = () => {
               </div>
             </div>
           </div>
+          
+          {/* Manual wallet test for debugging */}
+          <ManualWalletTest />
         </div>
       ) : (
         <>
@@ -1758,7 +1918,8 @@ const PaymentPortal = () => {
         </>
       )}
 
-
+      {/* Connection Test Component - Remove this after debugging */}
+      {import.meta.env.DEV && <ConnectionTest />}
     </div>
   )
 }
