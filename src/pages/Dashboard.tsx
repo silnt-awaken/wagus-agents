@@ -8,9 +8,11 @@ import {
   Clock, 
   TrendingUp,
   Wallet,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useBalances } from '../hooks/useBalances'
 
 interface Workspace {
   id: string
@@ -35,11 +37,7 @@ const Dashboard = () => {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
-  const [balances, setBalances] = useState({
-    sol: 0,
-    usdc: 0,
-    wagus: 0
-  })
+  const { balances, isLoading: isLoadingBalances, refetch: refetchBalances } = useBalances()
 
   useEffect(() => {
     // Load real user data from localStorage or API
@@ -132,8 +130,27 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="text-left sm:text-right flex-shrink-0">
-            <p className="text-orange-200 text-sm">Your Credits</p>
+            <div className="flex items-center space-x-2 mb-2">
+              <p className="text-orange-200 text-sm">Your Credits</p>
+              {publicKey && (
+                <button
+                  onClick={refetchBalances}
+                  disabled={isLoadingBalances}
+                  className="p-1 rounded hover:bg-white/10 transition-colors"
+                  title="Refresh balances"
+                >
+                  <RefreshCw className={`w-3 h-3 text-orange-200 ${isLoadingBalances ? 'animate-spin' : ''}`} />
+                </button>
+              )}
+            </div>
             <p className="text-2xl md:text-3xl font-bold">{credits}</p>
+            {publicKey && (
+              <div className="mt-2 space-y-1 text-sm">
+                <p className="text-orange-200">SOL: {balances.sol.toFixed(4)}</p>
+                <p className="text-orange-200">USDC: {balances.usdc.toFixed(2)}</p>
+                <p className="text-orange-200">WAGUS: {balances.wagus.toFixed(0)}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

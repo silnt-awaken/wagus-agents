@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '../components/PrivyAuthProvider'
+import { useBalances } from '../hooks/useBalances'
 
 interface Token {
   symbol: string
@@ -77,6 +78,7 @@ const PaymentPortal = () => {
   const { authenticated } = usePrivy()
   const { wallets } = useWallets()
   const { credits, setCredits, updateCredits, publicKey, connected } = useAuth()
+  const { balances, isLoading: isBalanceLoading, refetch: refetchBalances } = useBalances()
   
   // Create connection to Solana - ONLY use paid Helius RPC
   const connection = useMemo(() => {
@@ -113,7 +115,6 @@ const PaymentPortal = () => {
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isPriceLoading, setPriceLoading] = useState(false)
-  const [wagusBalance, setWagusBalance] = useState(0)
   const [ownedFeatures, setOwnedFeatures] = useState<string[]>(() => {
     const saved = localStorage.getItem('wagus-owned-features')
     return saved ? JSON.parse(saved) : []
@@ -522,127 +523,24 @@ const PaymentPortal = () => {
     }
   }
 
+  // Update tokens with balance data from the hook
   useEffect(() => {
     if (connected && publicKey) {
-      fetchBalances()
-    }
-  }, [connected, publicKey])
-
-  const fetchBalances = async () => {
-    if (!publicKey) {
-      console.log('No public key available for balance fetching')
-      return
-    }
-
-    setIsLoading(true)
-    console.log('Fetching balances for wallet:', publicKey.toString())
-    console.log('Using RPC endpoint:', connection.rpcEndpoint)
-    
-    try {
-      // Test connection first
-      console.log('Testing RPC connection...')
-      const slot = await connection.getSlot()
-      console.log('RPC connection successful, current slot:', slot)
-      
-      // Fetch SOL balance
-      console.log('Fetching SOL balance...')
-      // publicKey from Privy is a string, need to convert to PublicKey
-      const solBalance = await connection.getBalance(new PublicKey(publicKey))
-      console.log('SOL balance:', solBalance / LAMPORTS_PER_SOL)
-      
-      // Fetch real WAGUS token balance from blockchain
-      let wagusBalance = 0
-      try {
-        console.log('Fetching WAGUS balance...')
-        const wagusTokenAccount = await getAssociatedTokenAddress(
-          new PublicKey(WAGUS_MINT),
-          new PublicKey(publicKey)
-        )
-        console.log('WAGUS token account:', wagusTokenAccount.toString())
-        
-        // Check if the token account exists
-        const accountInfo = await connection.getAccountInfo(wagusTokenAccount)
-        if (accountInfo) {
-          const tokenAccountInfo = await getAccount(connection, wagusTokenAccount)
-          wagusBalance = Number(tokenAccountInfo.amount) / Math.pow(10, 6) // WAGUS has 6 decimals
-          console.log('WAGUS balance:', wagusBalance)
-        } else {
-          console.log('WAGUS token account does not exist, balance is 0')
-          wagusBalance = 0
-        }
-        setWagusBalance(wagusBalance)
-      } catch (error) {
-        console.error('Error fetching WAGUS balance:', error)
-        if (error instanceof TokenAccountNotFoundError || error instanceof TokenInvalidAccountOwnerError) {
-          console.log('WAGUS token account not found, setting balance to 0')
-        }
-        wagusBalance = 0
-        setWagusBalance(0)
-      }
-      
-      // Fetch real USDC token balance from blockchain
-      let usdcBalance = 0
-      try {
-        console.log('Fetching USDC balance...')
-        const usdcTokenAccount = await getAssociatedTokenAddress(
-          new PublicKey(USDC_MINT),
-          new PublicKey(publicKey)
-        )
-        console.log('USDC token account:', usdcTokenAccount.toString())
-        
-        // Check if the USDC token account exists
-        const usdcAccountInfo = await connection.getAccountInfo(usdcTokenAccount)
-        if (usdcAccountInfo) {
-          const usdcTokenAccountInfo = await getAccount(connection, usdcTokenAccount)
-          usdcBalance = Number(usdcTokenAccountInfo.amount) / Math.pow(10, 6) // USDC has 6 decimals
-          console.log('USDC balance:', usdcBalance)
-        } else {
-          console.log('USDC token account does not exist, balance is 0')
-          usdcBalance = 0
-        }
-      } catch (error) {
-        console.error('Error fetching USDC balance:', error)
-        if (error instanceof TokenAccountNotFoundError || error instanceof TokenInvalidAccountOwnerError) {
-          console.log('USDC token account not found, setting balance to 0')
-        }
-        usdcBalance = 0
-      }
-      
-      console.log('Updating token balances - SOL:', solBalance / LAMPORTS_PER_SOL, 'USDC:', usdcBalance, 'WAGUS:', wagusBalance)
-      
       setTokens(prev => prev.map(token => {
         if (token.symbol === 'SOL') {
-          return { ...token, balance: solBalance / LAMPORTS_PER_SOL }
+          return { ...token, balance: balances.sol }
         }
         if (token.symbol === 'USDC') {
-          return { ...token, balance: usdcBalance }
+          return { ...token, balance: balances.usdc }
         }
         if (token.symbol === 'WAGUS') {
-          return { ...token, balance: wagusBalance }
+          return { ...token, balance: balances.wagus }
         }
         return token
       }))
-      
-      toast.success('Balances updated successfully')
-    } catch (error) {
-      console.error('Error fetching balances:', error)
-      
-      // More specific error handling
-      if (error instanceof Error) {
-        if (error.message.includes('403') || error.message.includes('Access forbidden')) {
-          toast.error('RPC access denied. The free RPC endpoint may be rate limited. Please try again in a few minutes.')
-        } else if (error.message.includes('429')) {
-          toast.error('Rate limit exceeded. Please wait before trying again.')
-        } else {
-          toast.error(`Failed to fetch balances: ${error.message}`)
-        }
-      } else {
-        toast.error('Failed to fetch wallet balances. Please check your connection.')
-      }
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [connected, publicKey, balances])
+
 
   const purchaseCreditsWithUSDC = async (creditPackage: CreditPackage) => {
     if (!publicKey || !connected) {
@@ -747,7 +645,7 @@ const PaymentPortal = () => {
       updateCredits(creditPackage.credits)
       
       // Refresh balances
-      await fetchBalances()
+      await refetchBalances()
       
       toast.success(`Successfully purchased ${creditPackage.credits} credits with USDC!`)
 
@@ -860,7 +758,7 @@ const PaymentPortal = () => {
       updateCredits(creditPackage.credits)
       
       // Refresh balances
-      await fetchBalances()
+      await refetchBalances()
       
       toast.success(`Successfully purchased ${creditPackage.credits} credits with SOL!`)
 
@@ -883,7 +781,7 @@ const PaymentPortal = () => {
       return
     }
 
-    if (wagusBalance < feature.wagusPrice) {
+    if (balances.wagus < feature.wagusPrice) {
       toast.error(`Insufficient WAGUS balance. You need ${feature.wagusPrice} WAGUS tokens.`)
       return
     }
@@ -972,16 +870,13 @@ const PaymentPortal = () => {
       setTransactions(confirmedTransactions)
       localStorage.setItem('wagus-transactions', JSON.stringify(confirmedTransactions))
       
-      // Update WAGUS balance locally for immediate UI feedback
-      setWagusBalance(prev => prev - feature.wagusPrice)
-      
       // Add feature to owned features
       const updatedOwnedFeatures = [...ownedFeatures, feature.id]
       setOwnedFeatures(updatedOwnedFeatures)
       localStorage.setItem('wagus-owned-features', JSON.stringify(updatedOwnedFeatures))
       
       // Refresh balances from blockchain
-      await fetchBalances()
+      await refetchBalances()
       
       toast.success(`Successfully purchased ${feature.name}! You now own this premium feature.`)
 
@@ -1005,7 +900,7 @@ const PaymentPortal = () => {
       return false
     }
 
-    if (wagusBalance < commandCost) {
+    if (balances.wagus < commandCost) {
       toast.error(`Insufficient WAGUS balance. You need ${commandCost} WAGUS tokens.`)
       return false
     }
@@ -1055,7 +950,7 @@ const PaymentPortal = () => {
       setTransactions(updatedTransactions)
       localStorage.setItem('wagus-transactions', JSON.stringify(updatedTransactions))
       
-      await fetchBalances()
+      await refetchBalances()
       return true
       
     } catch (error) {
@@ -1102,14 +997,14 @@ const PaymentPortal = () => {
           </button>
           <button
             onClick={() => {
-              fetchBalances()
+              refetchBalances()
               fetchTokenPrices()
             }}
-            disabled={!connected || isLoading || isPriceLoading}
+            disabled={!connected || isBalanceLoading || isPriceLoading}
             className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading || isPriceLoading ? 'animate-spin' : ''}`} />
-            {isLoading || isPriceLoading ? 'Refreshing...' : 'Refresh All'}
+            <RefreshCw className={`w-4 h-4 mr-2 ${isBalanceLoading || isPriceLoading ? 'animate-spin' : ''}`} />
+            {isBalanceLoading || isPriceLoading ? 'Refreshing...' : 'Refresh All'}
           </button>
           <button 
             onClick={() => window.location.reload()}
@@ -1172,7 +1067,7 @@ const PaymentPortal = () => {
                   </div>
                   <div className="flex items-center space-x-1">
                     <span className="text-purple-100 text-sm">WAGUS:</span>
-                    <span className="font-bold">{wagusBalance.toFixed(2)}</span>
+                    <span className="font-bold">{balances.wagus.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1445,7 +1340,7 @@ const PaymentPortal = () => {
                   <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 md:gap-4">
                     <div className="flex items-center space-x-2 bg-orange-50 px-2 md:px-3 py-1 md:py-2 rounded-lg">
                       <Wallet className="w-3 h-3 md:w-4 md:h-4 text-orange-600" />
-                      <span className="text-xs md:text-sm font-medium text-orange-600">{wagusBalance.toFixed(0)} WAGUS</span>
+                      <span className="text-xs md:text-sm font-medium text-orange-600">{balances.wagus.toFixed(0)} WAGUS</span>
                     </div>
                     <div className="flex items-center space-x-2 bg-green-50 px-2 md:px-3 py-1 md:py-2 rounded-lg">
                       <TrendingUp className="w-3 h-3 md:w-4 md:h-4 text-green-600" />
@@ -1476,7 +1371,7 @@ const PaymentPortal = () => {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {(showAllFeatures ? premiumFeatures : premiumFeatures.slice(0, 6)).map((feature) => {
-                    const canPurchase = wagusBalance >= feature.wagusPrice
+                    const canPurchase = balances.wagus >= feature.wagusPrice
                     // Focus on utility, not USD value
                     const isOwned = ownedFeatures.includes(feature.id)
                     const isFeatured = ['prompt_optimizer', 'matrix_theme', 'advanced_commands', 'ai_assistant', 'dark_theme', 'priority_processing'].includes(feature.id)
@@ -1558,7 +1453,7 @@ const PaymentPortal = () => {
               </div>
               
               {/* Get WAGUS Section */}
-              {wagusBalance < 1000 && (
+              {balances.wagus < 1000 && (
                 <div className="mt-4 md:mt-6 p-4 md:p-6 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg md:rounded-xl">
                   <div className="flex items-start space-x-3 md:space-x-4">
                     <div className="text-2xl md:text-4xl flex-shrink-0">🐕</div>
@@ -1611,12 +1506,12 @@ const PaymentPortal = () => {
                     {isPriceLoading ? 'Updating Prices...' : 'Update Prices'}
                   </button>
                   <button 
-                    onClick={fetchBalances}
-                    disabled={isLoading}
+                    onClick={refetchBalances}
+                    disabled={isBalanceLoading}
                     className="flex items-center justify-center px-2 md:px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-xs md:text-sm"
                   >
-                    <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    {isLoading ? 'Refreshing...' : 'Refresh Balances'}
+                    <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-2 ${isBalanceLoading ? 'animate-spin' : ''}`} />
+                    {isBalanceLoading ? 'Refreshing...' : 'Refresh Balances'}
                   </button>
                 </div>
               </div>
