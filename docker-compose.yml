@@ -1,0 +1,42 @@
+services:
+  # Temporal server for local development
+  temporal:
+    image: temporalio/server:latest
+    ports:
+      - "7233:7233"
+      - "8080:8080"  # Temporal UI
+    environment:
+      - DB=sqlite
+    healthcheck:
+      test: ["CMD", "temporal", "health-check"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Temporal worker
+  temporal-worker:
+    build:
+      context: ./temporal-backend
+      dockerfile: Dockerfile
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+    volumes:
+      - ./temporal-backend:/app
+    restart: unless-stopped
+
+  # Optional: Temporal Web UI
+  temporal-ui:
+    image: temporalio/ui:latest
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8081:8080"

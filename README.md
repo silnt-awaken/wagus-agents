@@ -8,6 +8,8 @@ A Solana-based dApp for AI agent management with integrated wallet functionality
 - 💰 **Real-time Token Balances** - View SOL, USDC, and WAGUS token balances
 - 🛒 **Credit Purchase System** - Buy credits using WAGUS tokens
 - 🤖 **AI Command Interface** - Execute AI commands with token-based payments
+- 🧠 **Long-Running AI Agents** - Durable AI workflows with OpenAI Agents SDK and Temporal
+- 👥 **Human-in-the-Loop** - Interactive AI conversations with clarification support
 - 📊 **Transaction History** - Track all payments and purchases
 - ⚙️ **Settings Management** - Configure OpenAI API keys and preferences
 
@@ -16,8 +18,11 @@ A Solana-based dApp for AI agent management with integrated wallet functionality
 ### Prerequisites
 
 - Node.js 18+ (see `.nvmrc`)
+- Python 3.8+ (for AI Agent backend)
 - A Solana wallet (Phantom recommended)
 - Helius RPC API key (for reliable blockchain access)
+- OpenAI API key (for AI Agent functionality)
+- Docker (optional, for running Temporal locally)
 
 ### Installation
 
@@ -56,6 +61,34 @@ VITE_WAGUS_TREASURY=DZuJUNmVxNQwq55wrrrpFeE4PES1cyBv2bxuSqm7UXdj
 npm run dev
 ```
 
+## AI Agent Setup (Optional)
+
+The app includes a powerful AI Agent system using OpenAI Agents SDK and Temporal for durable workflows.
+
+### Quick Start
+
+1. **Start Temporal Server** (using Docker):
+```bash
+docker-compose up temporal temporal-ui -d
+```
+
+2. **Install Python dependencies**:
+```bash
+cd temporal-backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+3. **Start the worker**:
+```bash
+python worker.py
+```
+
+4. **Access AI Agent**: Navigate to "AI Agent" in the app sidebar
+
+For detailed setup instructions, see [AI_AGENT_SETUP.md](AI_AGENT_SETUP.md).
+
 ## Environment Variables
 
 | Variable | Description | Required |
@@ -65,6 +98,9 @@ npm run dev
 | `VITE_SOLANA_NETWORK` | Solana network (mainnet-beta/devnet) | No |
 | `VITE_WAGUS_MINT` | WAGUS token mint address | No |
 | `VITE_WAGUS_TREASURY` | Treasury wallet for payments | No |
+| `OPENAI_API_KEY` | OpenAI API key for AI agents | For AI Agent |
+| `TEMPORAL_HOST` | Temporal server address | For AI Agent |
+| `TEMPORAL_NAMESPACE` | Temporal namespace | For AI Agent |
 
 ## Getting Helius API Key
 

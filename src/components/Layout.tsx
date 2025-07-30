@@ -12,7 +12,8 @@ import {
   User,
   LogOut,
   Zap,
-  ShoppingCart
+  ShoppingCart,
+  MessageSquare
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
@@ -52,6 +53,7 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Repository', href: '/repository', icon: GitBranch },
     { name: 'Prompt Optimizer', href: '/prompt-optimizer', icon: Zap },
     { name: 'Agent Shop', href: '/agent-shop', icon: ShoppingCart },
+    { name: 'AI Agent', href: '/ai-agent', icon: MessageSquare },
     { name: 'Payments', href: '/payments', icon: CreditCard },
     { name: 'Settings', href: '/settings', icon: SettingsIcon },
   ]

@@ -8,6 +8,7 @@ import PaymentPortal from './pages/PaymentPortal'
 import Settings from './pages/Settings'
 import PromptOptimizer from './pages/PromptOptimizer'
 import AgentShop from './pages/AgentShop'
+import AIAgent from './pages/AIAgent'
 import Layout from './components/Layout'
 import PrivyProvider from './components/PrivyProvider'
 import PrivyAuthProvider from './components/PrivyAuthProvider'
@@ -31,6 +32,7 @@ function AppContent() {
             <Route path="/payments" element={<PaymentPortal />} />
             <Route path="/prompt-optimizer" element={<PromptOptimizer />} />
             <Route path="/agent-shop" element={<AgentShop />} />
+            <Route path="/ai-agent" element={<AIAgent />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>
