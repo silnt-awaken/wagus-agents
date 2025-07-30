@@ -7,7 +7,7 @@ import {
   SolflareWalletAdapter,
   TorusWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
-import { clusterApiUrl } from '@solana/web3.js'
+// Removed clusterApiUrl import - no longer using free RPC fallbacks
 import { isMobileDevice, getMobileWalletConfig } from '../utils/mobileWallet'
 
 // Import wallet adapter CSS
@@ -21,20 +21,17 @@ const SolanaProvider = ({ children }: SolanaProviderProps) => {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'
   const network = WalletAdapterNetwork.Mainnet
 
-  // Use Helius RPC endpoint for better reliability and higher rate limits
+  // Use ONLY the paid Helius RPC endpoint - no free fallbacks
   const endpoint = useMemo(() => {
-    // Primary endpoint: Helius RPC with API key from environment variables
-    const heliusRpc = import.meta.env.VITE_HELIUS_RPC_URL
+    const heliusRpc = import.meta.env.VITE_HELIUS_RPC
     
-    // Fallback endpoints in case Helius is down or not configured
-    const fallbackEndpoints = [
-      'https://api.mainnet-beta.solana.com',
-      'https://solana-api.projectserum.com',
-      clusterApiUrl(network)
-    ]
+    if (!heliusRpc) {
+      console.error('VITE_HELIUS_RPC not configured! Please set your paid Helius RPC endpoint in .env')
+      throw new Error('Helius RPC endpoint not configured')
+    }
     
-    // Use Helius if available, otherwise fall back to default endpoints
-    return heliusRpc || fallbackEndpoints[0]
+    console.log('Using paid Helius RPC:', heliusRpc)
+    return heliusRpc
   }, [network])
 
   const wallets = useMemo(

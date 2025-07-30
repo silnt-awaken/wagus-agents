@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import type { WagusTheme } from '../hooks/useTheme'
 import { toast } from 'sonner'
-import PrivyDebug from '../components/PrivyDebug'
+
 import { 
   User, 
   Bell, 
@@ -629,10 +629,7 @@ const Settings = () => {
               )}
             </div>
             
-            {/* Privy Debug Component */}
-            <div className="mb-6">
-              <PrivyDebug />
-            </div>
+
             
             {renderContent()}
           </div>

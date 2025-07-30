@@ -3,7 +3,6 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import MobileWalletButton from './MobileWalletButton'
 import wagusLogo from '../assets/wagus_logo.png'
-import AntiSpamService from '../utils/antiSpam'
 
 interface User {
   publicKey: string
@@ -59,49 +58,17 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           setOpenAiKey(savedOpenAiKey || '')
         }
       } else if (publicKey && connected) {
-        // Check anti-spam before creating new user
-        const antiSpam = AntiSpamService.getInstance()
+        // New user - grant 5 free credits
         const walletAddress = publicKey.toString()
-        
-        try {
-          const validation = await antiSpam.canRegisterNewUser(walletAddress)
-          
-          if (validation.allowed) {
-            // New user - grant 5 free credits
-            const newUser = {
-              publicKey: walletAddress,
-              credits: 5,
-              openAiKey: ''
-            }
-            setUser(newUser)
-            setCredits(5)
-            localStorage.setItem('wagus-user', JSON.stringify(newUser))
-            localStorage.setItem('wagus-credits', '5')
-            
-            // Register the user in anti-spam system
-            await antiSpam.registerNewUser(walletAddress)
-            
-            // Clean old data periodically
-            antiSpam.cleanOldData()
-          } else {
-            // User blocked by anti-spam
-            console.error('Registration blocked:', validation.reason)
-            alert(`Registration not allowed: ${validation.reason}`)
-            await disconnect()
-          }
-        } catch (error) {
-          console.error('Anti-spam check failed:', error)
-          // Fallback: allow registration but with warning
-          const newUser = {
-            publicKey: walletAddress,
-            credits: 5,
-            openAiKey: ''
-          }
-          setUser(newUser)
-          setCredits(5)
-          localStorage.setItem('wagus-user', JSON.stringify(newUser))
-          localStorage.setItem('wagus-credits', '5')
+        const newUser = {
+          publicKey: walletAddress,
+          credits: 5,
+          openAiKey: ''
         }
+        setUser(newUser)
+        setCredits(5)
+        localStorage.setItem('wagus-user', JSON.stringify(newUser))
+        localStorage.setItem('wagus-credits', '5')
       }
       setLoading(false)
     }

@@ -11,7 +11,8 @@ import AgentShop from './pages/AgentShop'
 import Layout from './components/Layout'
 import PrivyProvider from './components/PrivyProvider'
 import PrivyAuthProvider from './components/PrivyAuthProvider'
-import PrivyDebug from './components/PrivyDebug'
+import AuthGuard from './components/AuthGuard'
+
 import { useTheme } from './hooks/useTheme'
 
 function AppContent() {
@@ -20,18 +21,20 @@ function AppContent() {
   
   return (
     <div className="min-h-screen" style={{ backgroundColor: `rgb(var(--background))`, color: `rgb(var(--foreground))` }}>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/contexts" element={<ContextManager />} />
-          <Route path="/commands" element={<CommandInterface />} />
-          <Route path="/repository" element={<RepositoryViewer />} />
-          <Route path="/payments" element={<PaymentPortal />} />
-          <Route path="/prompt-optimizer" element={<PromptOptimizer />} />
-          <Route path="/agent-shop" element={<AgentShop />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </Layout>
+      <AuthGuard>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/contexts" element={<ContextManager />} />
+            <Route path="/commands" element={<CommandInterface />} />
+            <Route path="/repository" element={<RepositoryViewer />} />
+            <Route path="/payments" element={<PaymentPortal />} />
+            <Route path="/prompt-optimizer" element={<PromptOptimizer />} />
+            <Route path="/agent-shop" element={<AgentShop />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </Layout>
+      </AuthGuard>
       <Toaster position="top-right" />
     </div>
   )
@@ -44,7 +47,7 @@ function App() {
         <Router>
           <AppContent />
         </Router>
-        <PrivyDebug />
+
       </PrivyAuthProvider>
     </PrivyProvider>
   )

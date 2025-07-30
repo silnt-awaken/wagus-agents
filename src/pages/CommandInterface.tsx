@@ -31,7 +31,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '../components/AuthProvider'
+import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 interface Session {

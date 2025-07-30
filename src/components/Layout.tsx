@@ -14,7 +14,7 @@ import {
   Zap,
   ShoppingCart
 } from 'lucide-react'
-import { useAuth } from '../components/AuthProvider'
+import { useAuth } from '../hooks/useAuth'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -25,7 +25,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const location = useLocation()
-  const { user, signOut, credits, openAiKey } = useAuth()
+  const { user, signOut, credits, openAiKey, publicKey } = useAuth()
 
   // Detect mobile screen size
   useEffect(() => {
@@ -138,7 +138,7 @@ const Layout = ({ children }: LayoutProps) => {
               {(leftPanelOpen || isMobile) && (
                 <div className="flex-1">
                   <p className="text-sm font-medium">
-                    {user.publicKey.slice(0, 4)}...{user.publicKey.slice(-4)}
+                    {publicKey ? `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}` : 'No wallet'}
                   </p>
                   <p className="text-xs" style={{ color: `rgb(var(--foreground) / 0.6)` }}>{credits} credits</p>
                   <button

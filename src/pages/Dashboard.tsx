@@ -10,7 +10,7 @@ import {
   Wallet,
   Zap
 } from 'lucide-react'
-import { useAuth } from '../components/AuthProvider'
+import { useAuth } from '../hooks/useAuth'
 
 interface Workspace {
   id: string
@@ -30,7 +30,7 @@ interface RecentActivity {
 }
 
 const Dashboard = () => {
-  const { user, credits, openAiKey, updateCredits, updateOpenAiKey } = useAuth()
+  const { user, credits, openAiKey, updateCredits, updateOpenAiKey, publicKey } = useAuth()
   const [showSetup, setShowSetup] = useState(!openAiKey)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -125,7 +125,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl md:text-2xl font-bold mb-2 truncate">
-              Welcome back, {user?.publicKey.slice(0, 6)}...{user?.publicKey.slice(-4)}!
+              Welcome back, {publicKey ? `${publicKey.slice(0, 6)}...${publicKey.slice(-4)}` : 'Agent'}!
             </h1>
             <p className="text-orange-100 text-sm md:text-base">
               Ready to build something amazing? Your agentic platform awaits.

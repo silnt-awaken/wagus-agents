@@ -78,9 +78,16 @@ const PaymentPortal = () => {
   const { wallets } = useWallets()
   const { credits, setCredits, updateCredits, publicKey, connected } = useAuth()
   
-  // Create connection to Solana
+  // Create connection to Solana - ONLY use paid Helius RPC
   const connection = useMemo(() => {
-    const rpcUrl = import.meta.env.VITE_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com'
+    const rpcUrl = import.meta.env.VITE_HELIUS_RPC
+    
+    if (!rpcUrl) {
+      console.error('VITE_HELIUS_RPC not configured! Please set your paid Helius RPC endpoint in .env')
+      throw new Error('Helius RPC endpoint not configured - no free fallbacks allowed')
+    }
+    
+    console.log('PaymentPortal using paid Helius RPC:', rpcUrl)
     return new Connection(rpcUrl, 'confirmed')
   }, [])
   
@@ -539,6 +546,7 @@ const PaymentPortal = () => {
       
       // Fetch SOL balance
       console.log('Fetching SOL balance...')
+      // publicKey from Privy is a string, need to convert to PublicKey
       const solBalance = await connection.getBalance(new PublicKey(publicKey))
       console.log('SOL balance:', solBalance / LAMPORTS_PER_SOL)
       
@@ -661,6 +669,7 @@ const PaymentPortal = () => {
 
     try {
       // Create USDC token transfer transaction
+      // publicKey from Privy is a string, need to convert to PublicKey
       const usdcTokenAccount = await getAssociatedTokenAddress(
         new PublicKey(USDC_MINT),
         new PublicKey(publicKey)
@@ -786,9 +795,10 @@ const PaymentPortal = () => {
 
     try {
       // Create SOL transfer transaction
+      const publicKeyObj = new PublicKey(publicKey)
       const transaction = new SolanaTransaction().add(
         SystemProgram.transfer({
-          fromPubkey: new PublicKey(publicKey),
+          fromPubkey: publicKeyObj,
           toPubkey: new PublicKey(WAGUS_TREASURY),
           lamports: Math.floor(solAmount * LAMPORTS_PER_SOL)
         })
@@ -797,7 +807,7 @@ const PaymentPortal = () => {
       // Set recent blockhash and fee payer
       const { blockhash } = await connection.getLatestBlockhash()
       transaction.recentBlockhash = blockhash
-      transaction.feePayer = new PublicKey(publicKey)
+      transaction.feePayer = publicKeyObj
 
       const signature = await sendTransaction(transaction, connection, {
         skipPreflight: false,
@@ -916,7 +926,7 @@ const PaymentPortal = () => {
       // Set recent blockhash and fee payer
       const { blockhash } = await connection.getLatestBlockhash()
       transaction.recentBlockhash = blockhash
-      transaction.feePayer = new PublicKey(publicKey)
+      transaction.feePayer = publicKeyObj
 
       const signature = await sendTransaction(transaction, connection, {
         skipPreflight: false,
