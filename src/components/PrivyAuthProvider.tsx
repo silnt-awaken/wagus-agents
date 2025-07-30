@@ -159,9 +159,20 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
   }, [ready, authenticated])
 
   useEffect(() => {
-    if (ready && authenticated && privyUser && publicKey) {
+    console.log('🔍 PrivyAuthProvider useEffect:', {
+      ready,
+      authenticated,
+      privyUser: !!privyUser,
+      publicKey,
+      walletsLength: wallets.length,
+      solanaWallet: !!solanaWallet
+    })
+    
+    if (ready && authenticated && privyUser) {
+      console.log('✅ Calling handleUserAuth')
       handleUserAuth()
     } else if (ready && !authenticated) {
+      console.log('🔄 Clearing user data - not authenticated')
       // Clear user data when not authenticated
       setUser(null)
       setCredits(0)
@@ -169,43 +180,38 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
       localStorage.removeItem('wagus-user')
       localStorage.removeItem('wagus-credits')
       localStorage.removeItem('wagus-openai-key')
+    } else {
+      console.log('⏳ Waiting for Privy to be ready or authentication')
     }
    }, [ready, authenticated, privyUser, publicKey])
 
   const handleUserAuth = async () => {
-    console.log('handleUserAuth called with:', {
-      privyUser,
-      publicKey,
-      wallets: wallets.length,
-      solanaWallet,
-      privyUserWallets: privyUser?.wallet,
-      privyUserLinkedAccounts: privyUser?.linkedAccounts
-    })
+    console.log('🔐 handleUserAuth called:', { privyUser: !!privyUser, publicKey })
     
-    // Check if privyUser has embedded wallets
-    if (privyUser) {
-      console.log('Privy user object:', privyUser)
-      console.log('Privy user wallet:', privyUser.wallet)
-      console.log('Privy user linked accounts:', privyUser.linkedAccounts)
+    if (!privyUser || !publicKey) {
+      console.log('❌ Missing privyUser or publicKey:', { privyUser: !!privyUser, publicKey })
+      return
     }
-    
-    if (!privyUser || !publicKey) return
 
     try {
+      console.log('🔍 Checking for existing user data')
       // Check if this is a returning user
       const existingUser = localStorage.getItem('wagus-user')
       const existingCredits = localStorage.getItem('wagus-credits')
       const existingOpenAiKey = localStorage.getItem('wagus-openai-key')
 
       if (existingUser) {
+        console.log('👤 Found existing user, loading data')
         // Returning user
         const userData = JSON.parse(existingUser)
         setUser(userData)
         setCredits(parseInt(existingCredits || '0'))
         setOpenAiKey(existingOpenAiKey || '')
+        console.log('✅ Existing user data loaded successfully')
         return
       }
 
+      console.log('🆕 Creating new user')
       // Create new user
       const newUser: User = {
         id: privyUser.id,
@@ -217,6 +223,7 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
         phone: privyUser.phone
       }
       
+      console.log('💰 Granting initial credits')
       // Grant 5 free credits for new users
       const initialCredits = 5
       
@@ -229,12 +236,13 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
       localStorage.setItem('wagus-credits', initialCredits.toString())
       localStorage.setItem('wagus-openai-key', '')
 
+      console.log('🎉 New user created successfully')
       toast.success('Welcome to WAGUS Agents!', {
         description: `You've received ${initialCredits} free credits to start`
       })
 
     } catch (error) {
-      console.error('Authentication error:', error)
+      console.error('❌ Authentication error:', error)
       toast.error('Authentication failed', {
         description: 'Please try connecting again'
       })
@@ -242,23 +250,25 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
   }
 
   const signInWithPrivy = async () => {
-    console.log('signInWithPrivy called, ready:', ready)
+    console.log('🚀 signInWithPrivy called, ready:', ready)
     
     if (!ready) {
+      console.log('❌ Privy not ready yet')
       toast.error('Authentication not ready', {
         description: 'Please wait a moment and try again'
       })
       return
     }
     
+    console.log('🔄 Setting connecting to true')
     setConnecting(true)
     
     try {
-      console.log('Calling Privy login...')
+      console.log('📞 Calling Privy login()')
       await login()
-      console.log('Privy login successful')
+      console.log('✅ Privy login() completed successfully')
     } catch (error: any) {
-      console.error('Authentication error:', error)
+      console.error('❌ Authentication error:', error)
       
       let errorMessage = 'Authentication failed'
       
@@ -274,10 +284,12 @@ export const PrivyAuthProvider: React.FC<AuthProviderProps> = ({ children }) => 
         errorMessage = error.message
       }
       
+      console.log('🚨 Login error message:', errorMessage)
       toast.error('Login failed', {
         description: errorMessage
       })
     } finally {
+      console.log('🔄 Setting connecting to false')
       setConnecting(false)
     }
   }
